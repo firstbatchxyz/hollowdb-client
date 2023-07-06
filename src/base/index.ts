@@ -5,7 +5,6 @@ import type {
 } from '../interfaces/response.interface';
 
 export abstract class Base implements IHollowClient {
-  protected readonly authUrl = 'auth.hollowdb.io'; //TODO: change to the real url
   protected readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
 
   protected readonly apiKey: string;

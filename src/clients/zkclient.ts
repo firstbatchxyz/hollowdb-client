@@ -6,11 +6,11 @@ import {Base} from '../base';
 import type {IServerWriteResponse} from '../interfaces/response.interface';
 
 export class ZkClient extends Base {
-  private readonly protocol: 'groth16' | 'plonk' | undefined = undefined;
-  private readonly preImage: bigint | undefined = undefined;
+  private readonly protocol: 'groth16' | 'plonk';
+  private readonly preImage: bigint;
 
-  private readonly wasmPath: string | undefined = undefined;
-  private readonly proverPath: string | undefined = undefined;
+  private readonly wasmPath: string;
+  private readonly proverPath: string;
 
   constructor(
     apiKey: string,
@@ -35,6 +35,15 @@ export class ZkClient extends Base {
   }
 
   public async update(key: string, value: string | object): Promise<void> {
+    const curValue = await this.get(key);
+
+    const fullProof = await this.generateProof(
+      this.preImage,
+      curValue,
+      value,
+      this.protocol
+    );
+
     const response = await fetch(`${this.dbUrl}/update`, {
       method: 'POST',
       headers: {
@@ -42,29 +51,38 @@ export class ZkClient extends Base {
         'x-api-key': this.apiKey,
         authorization: `Bearer ${this.authToken}`,
       },
-      body: JSON.stringify({key, value}),
+      body: JSON.stringify({key, value, proof: fullProof}),
     });
 
     if (!response.ok) {
-      const putResponse: IServerWriteResponse = await response.json();
-      throw new Error('Update Error: ' + putResponse.message);
+      const updateResponse: IServerWriteResponse = await response.json();
+      throw new Error('Update Error: ' + updateResponse.message);
     }
   }
 
-  public async remove(key: string, proof?: object | undefined): Promise<void> {
-    const response = await fetch(`${this.dbUrl}/remove`, {
+  public async remove(key: string): Promise<void> {
+    const curValue = await this.get(key);
+
+    const fullProof = await this.generateProof(
+      this.preImage,
+      curValue,
+      null,
+      this.protocol
+    );
+
+    const response = await fetch(`${this.dbUrl}/update`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': this.apiKey,
         authorization: `Bearer ${this.authToken}`,
       },
-      body: JSON.stringify({key}),
+      body: JSON.stringify({key, proof: fullProof}),
     });
 
     if (!response.ok) {
-      const putResponse: IServerWriteResponse = await response.json();
-      throw new Error('Update Error: ' + putResponse.message);
+      const updateResponse: IServerWriteResponse = await response.json();
+      throw new Error('Update Error: ' + updateResponse.message);
     }
   }
 
