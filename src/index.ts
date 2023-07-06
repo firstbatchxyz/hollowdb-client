@@ -1,104 +1,41 @@
-import {createHash} from 'crypto';
-import path from 'path';
-const snarkjs = require('snarkjs');
+import {Client} from './clients/client';
+import {ZkClient} from './clients/zkclient';
 
-import type {HollowClientOptions} from './interfaces/client';
+import type {HollowClientOptions} from './interfaces/options.interface';
+import type {IHollowClient} from './interfaces/client.interface';
 
-class HollowClient {
-  private readonly authUrl = 'auth.hollowdb.io'; //TODO: change to the real url
-  private readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
+export type {HollowClientOptions};
 
-  private readonly db: string;
-  private readonly protocol: 'groth16' | 'plonk' | undefined;
-
-  private readonly wasmPath: string | undefined;
-  private readonly proverPath: string | undefined;
-
-  private readonly apiKey: string;
+export class HollowClient {
   private static authToken: string;
+  private readonly useZk: boolean = false;
 
   private constructor(opt: HollowClientOptions) {
-    this.apiKey = opt.apiKey;
-    this.db = opt.db;
-    this.protocol = opt.proofSystem || undefined;
-
-    if (this.protocol) {
-      this.wasmPath = path.join(
-        'circuits',
-        `hollow-authz-${this.protocol}`,
-        'hollow-authz.wasm'
-      );
-      this.proverPath = path.join(
-        'circuits',
-        `hollow-authz-${this.protocol}`,
-        'prover_key.zkey'
-      );
+    if (opt.zkOptions) {
+      this.useZk = true;
     }
   }
 
-  public static async CreateAsync(
+  public static async createAsync(
     opt: HollowClientOptions
-  ): Promise<HollowClient> {
+  ): Promise<IHollowClient> {
     const client = new HollowClient(opt);
 
     HollowClient.authToken = await client.getAuthToken();
 
-    return client;
-  }
+    if (client.useZk) {
+      if (!opt.zkOptions?.protocol || !opt.zkOptions?.preimage)
+        throw new Error('Protocol and preimage are required for zk');
 
-  public async get(key: string) {
-    const response = await fetch(`${this.dbUrl}/get/${key}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${HollowClient.authToken}`,
-      },
-    });
+      return new ZkClient(
+        opt.apiKey,
+        HollowClient.authToken,
+        opt.zkOptions.protocol,
+        opt.zkOptions.preimage
+      );
+    }
 
-    return await response.json();
-  }
-
-  public async put(key: string, value: string | object) {
-    const response = await fetch(`${this.dbUrl}/put`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${HollowClient.authToken}`,
-      },
-      body: JSON.stringify({key, value}),
-    });
-
-    return await response.json();
-  }
-
-  public async update(key: string, value: string | object, proof?: object) {
-    const response = await fetch(`${this.dbUrl}/update`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${HollowClient.authToken}`,
-      },
-      body: JSON.stringify({key, value, proof}),
-    });
-
-    return await response.json();
-  }
-
-  public async remove(key: string, proof?: object) {
-    const response = await fetch(`${this.dbUrl}/remove`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${HollowClient.authToken}`,
-      },
-      body: JSON.stringify({key, proof}),
-    });
-
-    return await response.json();
+    return new Client(opt.apiKey, HollowClient.authToken);
   }
 
   private async getAuthToken() {
@@ -115,52 +52,41 @@ class HollowClient {
     // temp solution for demo purposes
     await sleep(1500);
 
-    return 'temp-token'; //Change this to the actual token for testing
-  }
-
-  private async generateProof(
-    preimage: bigint,
-    curValue: unknown | null,
-    nextValue: unknown | null,
-    proofSystem: 'groth16' | 'plonk'
-  ): Promise<{
-    proof: object;
-    publicSignals: [
-      curValueHashOut: string,
-      nextValueHashOut: string,
-      key: string
-    ];
-  }> {
-    const fullProof = await snarkjs[proofSystem].fullProve(
-      {
-        preimage: preimage,
-        curValueHash: curValue ? this.valueToBigInt(curValue) : 0n,
-        nextValueHash: nextValue ? this.valueToBigInt(nextValue) : 0n,
-      },
-      this.wasmPath,
-      this.proverPath
-    );
-    return fullProof;
-  }
-
-  /**
-   * Convert a value into bigint using `ripemd160`.
-   * - `ripemd160` outputs a hex string, which can be converted into a `bigint`.
-   * - Since the result is 160 bits, it is for sure within the finite field of BN128.
-   * @see https://docs.circom.io/background/background/#signals-of-a-circuit
-   * @param value any kind of value
-   */
-  private valueToBigInt(value: unknown): bigint {
-    if (value) {
-      const digest = createHash('ripemd160')
-        .update(JSON.stringify(value), 'utf-8')
-        .digest('hex');
-      return BigInt('0x' + digest);
-    } else {
-      return 0n;
-    }
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJwZXJtaXNzaW9ucyI6eyJhbGxvd1pLIjp0cnVlLCJtYXhSZWFkTGltaXQiOjEwMDAwMDAwMDAwMDAwMDAwMDAsIm1heFdyaXRlTGltaXQiOjEwMDAwMDAwMDAwMDAwMDAwMDB9LCJjb250cmFjdFR4SWQiOiJsRExtX2t2WlN6WndnT2JrX2Z6OVlqbTJQVTY0OU1mcHg5ZWRwZlI1eG5VIiwiYXBpS2V5IjoiMDMyYzE3ZGRiODc0OTA0ZjExMjA1N2JkYTkwODJjMjgifQ.7iFBzENcJUeJSmPvgn6r8HMNIIJXw5E_tupHhAQF5_0';
   }
 }
+
+// export async function HollowFactory(opt: HollowClientOptions) {
+//   const authToken = await getAuthToken(opt);
+
+//   if (!opt.zkOptions) {
+//     return new Client(opt.apiKey, authToken);
+//   }
+
+//   return new ZkClient(
+//     opt.apiKey,
+//     authToken,
+//     opt.zkOptions.protocol,
+//     opt.zkOptions.preimage
+//   );
+// }
+
+// async function getAuthToken(opt: HollowClientOptions) {
+//   // const response = await fetch(`${this.authUrl}/auth`, {
+//   //   method: 'GET',
+//   //   headers: HollowClient.hollowHeader,
+//   //   body: JSON.stringify({db: this.db, apiKey: HollowClient.apiKey}),
+//   // });
+
+//   // const {token} = await response.json();
+
+//   // return token as string;
+
+//   // temp solution for demo purposes
+//   await sleep(1500);
+
+//   return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJwZXJtaXNzaW9ucyI6eyJhbGxvd1pLIjp0cnVlLCJtYXhSZWFkTGltaXQiOjEwMDAwMDAwMDAwMDAwMDAwMDAsIm1heFdyaXRlTGltaXQiOjEwMDAwMDAwMDAwMDAwMDAwMDB9LCJjb250cmFjdFR4SWQiOiJsRExtX2t2WlN6WndnT2JrX2Z6OVlqbTJQVTY0OU1mcHg5ZWRwZlI1eG5VIiwiYXBpS2V5IjoiMDMyYzE3ZGRiODc0OTA0ZjExMjA1N2JkYTkwODJjMjgifQ.7iFBzENcJUeJSmPvgn6r8HMNIIJXw5E_tupHhAQF5_0';
+// }
 
 //TODO: remove this
 function sleep(ms: number) {
@@ -168,5 +94,3 @@ function sleep(ms: number) {
     setTimeout(resolve, ms);
   });
 }
-
-export {HollowClient, HollowClientOptions};

@@ -1,24 +1,30 @@
 const {HollowClient} = require('../build/src/index.js');
 
 async function main() {
-  const client = await HollowClient.CreateAsync({
-    apiKey: '-', // replace with your API key
+  const client = await HollowClient.createAsync({
+    apiKey: '032c17ddb874904f112057bda9082c28',
     db: 'test',
-    proofSystem: 'groth16',
+    protocol: 'groth16',
   });
 
   const key = 'hdbaas-client-test-4';
 
   console.log('Starting the test..');
 
-  console.log('put test should response OK');
-  const putResult = await client.put(key, payload);
-  console.log(putResult);
+  try {
+    console.log('put test');
+    await client.put(key, payload);
+  } catch (e) {
+    console.log(e);
+  }
 
-  console.log('get test should response OK');
-  const getResult = await client.get(key);
-
-  console.log(getResult);
+  try {
+    console.log('get test');
+    const getResult = await client.get(key);
+    console.log(getResult);
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 main();
