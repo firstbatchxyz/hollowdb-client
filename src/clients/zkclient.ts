@@ -46,11 +46,7 @@ export class ZkClient extends Base {
 
     const response = await fetch(`${this.dbUrl}/update`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${this.authToken}`,
-      },
+      headers: this.hollowHeader,
       body: JSON.stringify({key, value, proof: fullProof}),
     });
 
@@ -72,11 +68,7 @@ export class ZkClient extends Base {
 
     const response = await fetch(`${this.dbUrl}/update`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${this.authToken}`,
-      },
+      headers: this.hollowHeader,
       body: JSON.stringify({key, proof: fullProof}),
     });
 

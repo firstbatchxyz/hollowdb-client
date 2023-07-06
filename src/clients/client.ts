@@ -9,11 +9,7 @@ export class Client extends Base {
   public async update(key: string, value: string | object): Promise<void> {
     const response = await fetch(`${this.dbUrl}/update`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${this.authToken}`,
-      },
+      headers: this.hollowHeader,
       body: JSON.stringify({key, value}),
     });
 
@@ -23,14 +19,10 @@ export class Client extends Base {
     }
   }
 
-  public async remove(key: string, proof?: object | undefined): Promise<void> {
+  public async remove(key: string): Promise<void> {
     const response = await fetch(`${this.dbUrl}/remove`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${this.authToken}`,
-      },
+      headers: this.hollowHeader,
       body: JSON.stringify({key}),
     });
 

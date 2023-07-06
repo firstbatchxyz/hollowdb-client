@@ -6,23 +6,20 @@ import type {
 
 export abstract class Base implements IHollowClient {
   protected readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
-
-  protected readonly apiKey: string;
-  protected readonly authToken: string;
+  protected readonly hollowHeader: HeadersInit;
 
   constructor(apiKey: string, authToken: string) {
-    this.apiKey = apiKey;
-    this.authToken = authToken;
+    this.hollowHeader = {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      authorization: `Bearer ${authToken}`,
+    };
   }
 
   public async get(key: string): Promise<object | string> {
     const response = await fetch(`${this.dbUrl}/get/${key}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${this.authToken}`,
-      },
+      headers: this.hollowHeader,
     });
 
     const getResponse: IServerGetResponse = await response.json();
@@ -37,11 +34,7 @@ export abstract class Base implements IHollowClient {
   public async put(key: string, value: string | object): Promise<void> {
     const response = await fetch(`${this.dbUrl}/put`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${this.authToken}`,
-      },
+      headers: this.hollowHeader,
       body: JSON.stringify({key, value}),
     });
 
