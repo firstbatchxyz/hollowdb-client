@@ -5,8 +5,9 @@ import type {HollowClientOptions} from './interfaces/options.interface';
 import type {IHollowClient} from './interfaces/client.interface';
 
 export type {HollowClientOptions};
+export type {IHollowClient};
 
-export class HollowClient {
+export class HollowFactory {
   private readonly authUrl = 'auth.hollowdb.io'; //TODO: change to the real url
   private readonly useZk: boolean = false;
 
@@ -19,9 +20,9 @@ export class HollowClient {
   public static async createAsync(
     opt: HollowClientOptions
   ): Promise<IHollowClient> {
-    const client = new HollowClient(opt);
+    const client = new HollowFactory(opt);
 
-    HollowClient.authToken = await client.getAuthToken();
+    HollowFactory.authToken = await client.getAuthToken();
 
     if (client.useZk) {
       if (!opt.zkOptions?.protocol || !opt.zkOptions?.preimage)
@@ -29,13 +30,13 @@ export class HollowClient {
 
       return new ZkClient(
         opt.apiKey,
-        HollowClient.authToken,
+        HollowFactory.authToken,
         opt.zkOptions.protocol,
         opt.zkOptions.preimage
       );
     }
 
-    return new Client(opt.apiKey, HollowClient.authToken);
+    return new Client(opt.apiKey, HollowFactory.authToken);
   }
 
   private async getAuthToken() {
