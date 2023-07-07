@@ -8,40 +8,49 @@
   ],
   "homepage": "https://github.com/firstbatchxyz/hollowdb#readme",
   "license": "MIT",
-  "main": "./build/src/index.js",
+  "source": "src/index.ts",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "dist/types.d.ts",
   "exports": {
-    ".": "./build/cjs/index.js"
+    ".": "./dist/main.js"
   },
   "files": [
-    "lib/",
+    "dist/",
     "LICENSE",
     "README.md"
   ],
+  "engines": {
+    "node": ">=10.6.0"
+  },
   "dependencies": {
-    "@ethersproject/sha2": "^5.7.0",
     "snarkjs": "^0.7.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.8",
-    "@babel/preset-env": "^7.22.7",
-    "@babel/preset-typescript": "^7.22.5",
     "@jest/globals": "^29.6.1",
-    "@types/isomorphic-fetch": "^0.0.36",
+    "@parcel/packager-ts": "2.9.3",
+    "@parcel/transformer-typescript-types": "2.9.3",
     "@types/node": "^14.11.2",
-    "babel-jest": "^29.6.1",
     "gts": "^3.1.1",
     "jest": "^29.6.1",
+    "parcel": "^2.9.3",
+    "rimraf": "^5.0.1",
     "ts-jest": "^29.1.1",
     "typescript": "~4.7.0"
   },
   "scripts": {
-    "test": "jest",
-    "lint": "gts lint",
+    "prebuild": "yarn clean:dist && yarn lint",
+    "build": "parcel build",
+    "test": "yarn compile && jest",
     "clean": "gts clean",
+    "clean:dist": "rimraf ./dist",
     "compile": "yarn clean && tsc",
-    "fix": "gts fix",
+    "lint": "gts lint",
+    "format": "prettier --write './src/**/*.ts'",
     "prepublishOnly": "yarn lint",
     "preversion": "yarn lint && yarn build",
+    "version": "yarn format && git add -A src",
+    "postversion": "git push && git push --tags",
     "yalc:publish": "yarn build && yalc publish --push"
   },
   "keywords": [
