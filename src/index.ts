@@ -4,7 +4,7 @@ import {ZkClient} from './clients/zkclient';
 import type {HollowClientOptions} from './interfaces/options.interface';
 import type {IHollowClient} from './interfaces/client.interface';
 
-export class HollowFactory {
+class HollowFactory {
   private readonly authUrl = 'auth.hollowdb.io'; //TODO: change to the real url
   private readonly useZk: boolean = false;
 
@@ -61,5 +61,5 @@ function sleep(ms: number) {
   });
 }
 
-// export type {HollowClientOptions, IHollowClient};
-// export {HollowFactory};
+export type {HollowClientOptions, IHollowClient};
+export {HollowFactory};
