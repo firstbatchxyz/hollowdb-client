@@ -8,15 +8,31 @@
   ],
   "homepage": "https://github.com/firstbatchxyz/hollowdb#readme",
   "license": "MIT",
+  "type": "module",
   "source": "src/index.ts",
-  "main": "dist/main.js",
-  "module": "dist/module.js",
-  "types": "dist/types.d.ts",
+  "types": "lib/index.d.ts",
+  "cjs": "lib/index.cjs",
+  "mjs": "lib/index.mjs",
   "exports": {
-    ".": "./dist/main.js"
+    "types": "./lib/index.d.ts",
+    "import": "./lib/index.mjs",
+    "require": "./lib/index.cjs",
+    "default": "./lib/index.mjs"
+  },
+  "targets": {
+    "cjs": {
+      "outputFormat": "commonjs",
+      "isLibrary": true,
+      "context": "node"
+    },
+    "mjs": {
+      "outputFormat": "esmodule",
+      "isLibrary": true,
+      "context": "node"
+    }
   },
   "files": [
-    "dist/",
+    "lib/",
     "LICENSE",
     "README.md"
   ],
@@ -29,6 +45,7 @@
   "devDependencies": {
     "@jest/globals": "^29.6.1",
     "@parcel/packager-ts": "2.9.3",
+    "@parcel/transformer-typescript-tsc": "^2.9.3",
     "@parcel/transformer-typescript-types": "2.9.3",
     "@types/node": "^14.11.2",
     "gts": "^3.1.1",
@@ -39,11 +56,11 @@
     "typescript": "~4.7.0"
   },
   "scripts": {
-    "prebuild": "yarn clean:dist && yarn lint",
+    "prebuild": "yarn clean:lib && yarn lint",
     "build": "parcel build",
     "test": "yarn compile && jest",
     "clean": "gts clean",
-    "clean:dist": "rimraf ./dist",
+    "clean:lib": "rimraf ./lib",
     "compile": "yarn clean && tsc",
     "lint": "gts lint",
     "format": "prettier --write './src/**/*.ts'",

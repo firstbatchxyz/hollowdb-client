@@ -1,6 +1,7 @@
 import {createHash} from 'crypto';
 import path from 'path';
 const snarkjs = require('snarkjs');
+// import {} from 'snarkjs';
 
 import {Base} from '../base';
 import type {IServerWriteResponse} from '../interfaces/response.interface';

@@ -1,5 +1,6 @@
 build/
-dist/
+lib/
 node_modules/
 tests/
 jest.config.js
+.prettierrc.js
