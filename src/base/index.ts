@@ -1,3 +1,5 @@
+import {getToken} from '../utilities/tokengetter';
+
 import type {IHollowClient} from '../interfaces/client.interface';
 import type {IFetchHandler} from '../interfaces/fetch.interface';
 import type {IServerResponse} from '../interfaces/response.interface';
@@ -7,10 +9,12 @@ export abstract class Base implements IHollowClient {
   protected readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
   protected readonly apiKey: string;
   protected authToken: string;
+  protected db: string;
 
   constructor(opt: HollowClientOptions, authToken: string) {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;
+    this.db = opt.db;
   }
 
   public async get(key: string): Promise<IServerResponse<'get'>> {
@@ -57,7 +61,7 @@ export abstract class Base implements IHollowClient {
       return json;
     } else {
       if (json.message === 'token expired') {
-        throw new Error('will get new token'); //TODO: try to get new token
+        this.authToken = await getToken(this.db, this.apiKey);
       }
     }
 
