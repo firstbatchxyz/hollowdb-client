@@ -1,50 +1,75 @@
 import type {IHollowClient} from '../interfaces/client.interface';
-import type {
-  IServerWriteResponse,
-  IServerGetResponse,
-} from '../interfaces/response.interface';
+import type {IFetchHandler} from '../interfaces/fetch.interface';
+import type {IServerResponse} from '../interfaces/response.interface';
+import type {HollowClientOptions} from '../interfaces/options.interface';
 
 export abstract class Base implements IHollowClient {
   protected readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
-  protected readonly hollowHeader: HeadersInit;
+  protected readonly apiKey: string;
+  protected authToken: string;
 
-  constructor(apiKey: string, authToken: string) {
-    this.hollowHeader = {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      authorization: `Bearer ${authToken}`,
-    };
+  constructor(opt: HollowClientOptions, authToken: string) {
+    this.apiKey = opt.apiKey;
+    this.authToken = authToken;
   }
 
-  public async get(key: string): Promise<object | string> {
-    const response = await fetch(`${this.dbUrl}/get/${key}`, {
-      method: 'GET',
-      headers: this.hollowHeader,
+  public async get(key: string): Promise<IServerResponse<'get'>> {
+    return await this.fetchHandler({
+      op: 'get',
+      key,
     });
-
-    const getResponse: IServerGetResponse = await response.json();
-
-    if (!response.ok) {
-      throw new Error('Get Error: ' + getResponse.message);
-    }
-
-    return getResponse.data.result;
   }
 
-  public async put(key: string, value: string | object): Promise<void> {
-    const response = await fetch(`${this.dbUrl}/put`, {
-      method: 'POST',
-      headers: this.hollowHeader,
+  public async put(
+    key: string,
+    value: string | object
+  ): Promise<IServerResponse<'write'>> {
+    return await this.fetchHandler({
+      op: 'put',
       body: JSON.stringify({key, value}),
     });
-
-    if (!response.ok) {
-      const putResponse: IServerWriteResponse = await response.json();
-      throw new Error('Put Error: ' + putResponse.message);
-    }
   }
 
-  public abstract update(key: string, value: string | object): Promise<void>;
+  protected async fetchHandler(
+    opt: IFetchHandler
+  ): Promise<IServerResponse<'get' | 'write'>> {
+    const url =
+      opt.op === 'get'
+        ? `${this.dbUrl}/${opt.op}/${opt.key}`
+        : `${this.dbUrl}/${opt.op}`;
 
-  public abstract remove(key: string, proof?: object): Promise<void>;
+    const response = await fetch(url, {
+      method: opt.op === 'get' ? 'GET' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        authorization: `Bearer ${this.authToken}`,
+      },
+      ...(opt.body && {
+        body: opt.body,
+      }),
+    });
+
+    const json: IServerResponse<'get' | 'write'> = await response.json();
+
+    if (response.status === 200) {
+      if (json.newBearer) this.authToken = json.newBearer;
+      return json;
+    } else {
+      if (json.message === 'token expired') {
+        throw new Error('will get new token'); //TODO: try to get new token
+      }
+    }
+
+    throw new Error(json.message);
+  }
+
+  public abstract update(
+    key: string,
+    value: string | object
+  ): Promise<IServerResponse<'write'>>;
+  public abstract remove(
+    key: string,
+    proof?: object
+  ): Promise<IServerResponse<'write'>>;
 }

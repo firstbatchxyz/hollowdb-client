@@ -1,10 +1,10 @@
 import {createHash} from 'crypto';
 import path from 'path';
 const snarkjs = require('snarkjs');
-// import {} from 'snarkjs';
 
 import {Base} from '../base';
-import type {IServerWriteResponse} from '../interfaces/response.interface';
+import type {IServerResponse} from '../interfaces/response.interface';
+import type {HollowClientOptions} from '../interfaces/options.interface';
 
 export class ZkClient extends Base {
   private readonly protocol: 'groth16' | 'plonk';
@@ -13,15 +13,14 @@ export class ZkClient extends Base {
   private readonly wasmPath: string;
   private readonly proverPath: string;
 
-  constructor(
-    apiKey: string,
-    authToken: string,
-    protocol: 'groth16' | 'plonk',
-    preImage: bigint
-  ) {
-    super(apiKey, authToken);
-    this.protocol = protocol;
-    this.preImage = preImage;
+  constructor(opt: HollowClientOptions, authToken: string) {
+    super(opt, authToken);
+
+    if (!opt.zkOptions?.protocol || !opt.zkOptions?.preimage)
+      throw new Error('Protocol and preimage are required for zk');
+
+    this.protocol = opt.zkOptions?.protocol;
+    this.preImage = opt.zkOptions?.preimage;
 
     this.wasmPath = path.join(
       'circuits',
@@ -35,7 +34,10 @@ export class ZkClient extends Base {
     );
   }
 
-  public async update(key: string, value: string | object): Promise<void> {
+  public async update(
+    key: string,
+    value: string | object
+  ): Promise<IServerResponse<'write'>> {
     const curValue = await this.get(key);
 
     const fullProof = await this.generateProof(
@@ -45,19 +47,13 @@ export class ZkClient extends Base {
       this.protocol
     );
 
-    const response = await fetch(`${this.dbUrl}/update`, {
-      method: 'POST',
-      headers: this.hollowHeader,
+    return await this.fetchHandler({
+      op: 'put',
       body: JSON.stringify({key, value, proof: fullProof}),
     });
-
-    if (!response.ok) {
-      const updateResponse: IServerWriteResponse = await response.json();
-      throw new Error('Update Error: ' + updateResponse.message);
-    }
   }
 
-  public async remove(key: string): Promise<void> {
+  public async remove(key: string): Promise<IServerResponse<'write'>> {
     const curValue = await this.get(key);
 
     const fullProof = await this.generateProof(
@@ -67,16 +63,10 @@ export class ZkClient extends Base {
       this.protocol
     );
 
-    const response = await fetch(`${this.dbUrl}/update`, {
-      method: 'POST',
-      headers: this.hollowHeader,
+    return await this.fetchHandler({
+      op: 'put',
       body: JSON.stringify({key, proof: fullProof}),
     });
-
-    if (!response.ok) {
-      const updateResponse: IServerWriteResponse = await response.json();
-      throw new Error('Update Error: ' + updateResponse.message);
-    }
   }
 
   private async generateProof(
