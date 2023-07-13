@@ -6,7 +6,8 @@ import type {IServerResponse} from '../interfaces/response.interface';
 import type {HollowClientOptions} from '../interfaces/options.interface';
 
 export abstract class Base implements IHollowClient {
-  protected readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
+  protected readonly dbUrl =
+    'http://k8s-default-ingressh-1b5e0101ad-238028031.us-east-1.elb.amazonaws.com'; //TODO: change to the real url
   protected readonly apiKey: string;
   protected authToken: string;
   protected db: string;

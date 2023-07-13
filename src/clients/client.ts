@@ -12,15 +12,15 @@ export class Client extends Base {
     value: string | object
   ): Promise<IServerResponse<'write'>> {
     return await this.fetchHandler({
-      op: 'put',
+      op: 'update',
       body: JSON.stringify({key, value}),
     });
   }
 
   public async remove(key: string): Promise<IServerResponse<'write'>> {
     return await this.fetchHandler({
-      op: 'put',
-      key,
+      op: 'remove',
+      body: JSON.stringify({key}),
     });
   }
 }
