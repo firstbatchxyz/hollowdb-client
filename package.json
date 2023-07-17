@@ -32,6 +32,7 @@
     }
   },
   "files": [
+    "circuits/",
     "lib/",
     "LICENSE",
     "README.md"
@@ -40,6 +41,7 @@
     "node": ">=10.6.0"
   },
   "dependencies": {
+    "poseidon-lite": "^0.2.0",
     "snarkjs": "^0.7.0"
   },
   "devDependencies": {

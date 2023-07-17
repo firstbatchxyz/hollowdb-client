@@ -2,7 +2,7 @@ export interface HollowClientOptions {
   apiKey: string;
   db: string;
   zkOptions?: {
-    preimage: bigint;
+    secret: string;
     protocol: 'groth16' | 'plonk';
   };
 }

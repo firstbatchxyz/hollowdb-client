@@ -20,7 +20,7 @@ class HollowClient {
     const authToken = await getToken(opt.db, opt.apiKey);
 
     if (client.useZk) {
-      if (!opt.zkOptions?.protocol || !opt.zkOptions?.preimage)
+      if (!opt.zkOptions?.protocol || !opt.zkOptions?.secret)
         throw new Error('Protocol and preimage are required for zk');
 
       return new ZkClient(opt, authToken);
