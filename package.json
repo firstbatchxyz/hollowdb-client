@@ -32,6 +32,7 @@
     }
   },
   "files": [
+    "circuits/",
     "lib/",
     "LICENSE",
     "README.md"
@@ -40,6 +41,7 @@
     "node": ">=10.6.0"
   },
   "dependencies": {
+    "poseidon-lite": "^0.2.0",
     "snarkjs": "^0.7.0"
   },
   "devDependencies": {
@@ -58,10 +60,9 @@
   "scripts": {
     "prebuild": "yarn clean:lib && yarn lint",
     "build": "parcel build",
-    "test": "yarn compile && jest",
+    "test": "yarn build && jest",
     "clean": "gts clean",
     "clean:lib": "rimraf ./lib",
-    "compile": "yarn clean && tsc",
     "lint": "gts lint",
     "format": "prettier --write './src/**/*.ts'",
     "prepublishOnly": "yarn lint",

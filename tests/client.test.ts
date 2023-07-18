@@ -1,10 +1,10 @@
 import {describe, expect, test, beforeAll} from '@jest/globals';
 import {randomUUID} from 'crypto';
 
-import {HollowFactory} from '../build/src/index.js';
+import {HollowClient} from '../lib/index';
 import {payload} from './constants';
 
-import type {IHollowClient, HollowClientOptions} from '../build/src/index.js';
+import type {IHollowClient, HollowClientOptions} from '../lib/index';
 
 describe('client test', () => {
   let client: IHollowClient;
@@ -16,7 +16,7 @@ describe('client test', () => {
       db: 'test',
     };
 
-    client = await HollowFactory.createAsync(opt);
+    client = await HollowClient.createAsync(opt);
     key = randomUUID();
   });
 

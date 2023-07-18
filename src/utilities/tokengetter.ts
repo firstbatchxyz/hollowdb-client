@@ -1,3 +1,6 @@
+import {IAuthResponse} from '../interfaces/response.interface';
+import {AuthError} from '../utilities/errors';
+
 export async function getToken(db: string, apiKey: string) {
   const response = await fetch(
     `https://auth.firstbatch.xyz/hollow/create_bearer?db=${db}`,
@@ -10,11 +13,26 @@ export async function getToken(db: string, apiKey: string) {
     }
   );
 
-  if (!response.ok)
-    throw new Error('Server responded with a status code: ' + response.status);
-  const {bearerToken} = await response.json();
+  const authResponse: IAuthResponse = await response.json();
+  if (!response.ok) {
+    if (authResponse.message)
+      throw new AuthError({
+        message: authResponse.message,
+        helper: 'Check your API key and database name',
+      });
 
-  if (!bearerToken) throw new Error('Failed to get auth token');
+    throw new AuthError({
+      message: 'Failed to get auth token: Unknown error',
+      helper:
+        'Auth service may be down, you can check the status of HollowDB services at https://status.hollowdb.xyz',
+    });
+  }
 
-  return bearerToken as string;
+  if (!authResponse.bearerToken)
+    throw new AuthError({
+      message:
+        'Failed to get auth token: Fatal error, server bearer response empty',
+    });
+
+  return authResponse.bearerToken;
 }

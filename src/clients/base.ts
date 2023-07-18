@@ -4,10 +4,12 @@ import type {IHollowClient} from '../interfaces/client.interface';
 import type {IFetchHandler} from '../interfaces/fetch.interface';
 import type {IServerResponse} from '../interfaces/response.interface';
 import type {HollowClientOptions} from '../interfaces/options.interface';
+import {HollowDBError} from '../utilities/errors';
 
 export abstract class Base implements IHollowClient {
-  protected readonly dbUrl =
-    'http://k8s-default-ingressh-1b5e0101ad-238028031.us-east-1.elb.amazonaws.com'; //TODO: change to the real url
+  // protected readonly dbUrl =
+  //   'http://k8s-default-ingressh-1b5e0101ad-238028031.us-east-1.elb.amazonaws.com'; //TODO: change to the real url
+  protected readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
   protected readonly apiKey: string;
   protected authToken: string;
   protected db: string;
@@ -16,23 +18,6 @@ export abstract class Base implements IHollowClient {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;
     this.db = opt.db;
-  }
-
-  public async get(key: string): Promise<IServerResponse<'get'>> {
-    return await this.fetchHandler({
-      op: 'get',
-      key,
-    });
-  }
-
-  public async put(
-    key: string,
-    value: string | object
-  ): Promise<IServerResponse<'write'>> {
-    return await this.fetchHandler({
-      op: 'put',
-      body: JSON.stringify({key, value}),
-    });
   }
 
   protected async fetchHandler(
@@ -63,18 +48,17 @@ export abstract class Base implements IHollowClient {
     } else {
       if (json.message === 'token expired') {
         this.authToken = await getToken(this.db, this.apiKey);
+        return json;
       }
     }
 
-    throw new Error(json.message);
+    throw new HollowDBError({
+      message: `${opt.op}: Status: ${response.status} Error: ${json.message}`,
+    });
   }
 
-  public abstract update(
-    key: string,
-    value: string | object
-  ): Promise<IServerResponse<'write'>>;
-  public abstract remove(
-    key: string,
-    proof?: object
-  ): Promise<IServerResponse<'write'>>;
+  public abstract get(key: string): Promise<object | string>;
+  public abstract put(key: string, value: string | object): Promise<void>;
+  public abstract update(key: string, value: string | object): Promise<void>;
+  public abstract remove(key: string): Promise<void>;
 }
