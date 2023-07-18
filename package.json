@@ -60,10 +60,9 @@
   "scripts": {
     "prebuild": "yarn clean:lib && yarn lint",
     "build": "parcel build",
-    "test": "yarn compile && jest",
+    "test": "yarn build && jest",
     "clean": "gts clean",
     "clean:lib": "rimraf ./lib",
-    "compile": "yarn clean && tsc",
     "lint": "gts lint",
     "format": "prettier --write './src/**/*.ts'",
     "prepublishOnly": "yarn lint",
