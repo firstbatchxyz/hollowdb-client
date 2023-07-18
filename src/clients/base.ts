@@ -60,5 +60,5 @@ export abstract class Base implements IHollowClient {
   public abstract get(key: string): Promise<object | string>;
   public abstract put(key: string, value: string | object): Promise<void>;
   public abstract update(key: string, value: string | object): Promise<void>;
-  public abstract remove(key: string, proof?: object): Promise<void>;
+  public abstract remove(key: string): Promise<void>;
 }
