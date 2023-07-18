@@ -1,15 +1,13 @@
 import {getToken} from '../utilities/getToken';
 
-import type {IHollowClient} from '../interfaces/client.interface';
-import type {IFetchHandler} from '../interfaces/fetch.interface';
+import type {HollowClient} from '../interfaces/client.interface';
 import type {IServerResponse} from '../interfaces/response.interface';
 import type {HollowClientOptions} from '../interfaces/options.interface';
 import {HollowDBError} from '../utilities/errors';
 
-/** Base API URL */
 const BASE_URL = 'http://localhost:3000'; //TODO: change to the real url
 
-export abstract class Base implements IHollowClient {
+export abstract class Base<T> implements HollowClient<T> {
   protected readonly apiKey: string;
   protected authToken: string;
   protected db: string;
@@ -21,7 +19,17 @@ export abstract class Base implements IHollowClient {
     this.db = opt.db;
   }
 
-  protected async fetchHandler(opt: IFetchHandler): Promise<IServerResponse> {
+  protected async fetchHandler(
+    opt:
+      | {
+          op: 'get';
+          key: string;
+        }
+      | {
+          op: 'put' | 'update' | 'remove';
+          body: BodyInit;
+        }
+  ): Promise<IServerResponse<T>> {
     const url =
       opt.op === 'get'
         ? `${BASE_URL}/${opt.op}/${opt.key}`
@@ -47,7 +55,7 @@ export abstract class Base implements IHollowClient {
           }
     );
 
-    const json: IServerResponse = await response.json();
+    const json: IServerResponse<T> = await response.json();
     if (response.status === 200) {
       // new bearer has been created due to expiration of previous
       if (json.newBearer !== undefined) {
@@ -68,8 +76,8 @@ export abstract class Base implements IHollowClient {
     });
   }
 
-  public abstract get(key: string): Promise<object | string>;
-  public abstract put(key: string, value: string | object): Promise<void>;
-  public abstract update(key: string, value: string | object): Promise<void>;
+  public abstract get(key: string): Promise<T>;
+  public abstract put(key: string, value: T): Promise<void>;
+  public abstract update(key: string, value: T): Promise<void>;
   public abstract remove(key: string): Promise<void>;
 }

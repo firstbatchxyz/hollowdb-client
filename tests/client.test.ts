@@ -1,13 +1,13 @@
 import {describe, expect, test, beforeAll} from '@jest/globals';
 import {randomUUID} from 'crypto';
 
-import {HollowClient} from '../lib/index';
+import {createHollowClient} from '../lib/index';
 import {payload} from './constants';
 
-import type {IHollowClient, HollowClientOptions} from '../lib/index';
+import type {HollowClient, HollowClientOptions} from '../lib/index';
 
 describe('client test', () => {
-  let client: IHollowClient;
+  let client: HollowClient;
   let key: string;
 
   beforeAll(async () => {
@@ -16,11 +16,11 @@ describe('client test', () => {
       db: 'test',
     };
 
-    client = await HollowClient.createAsync(opt);
-    
+    client = await createHollowClient(opt);
     key = randomUUID();
   });
 
+  
   test('put', async () => {
     await expect(client.put(key, payload)).resolves.not.toThrowError();
   });

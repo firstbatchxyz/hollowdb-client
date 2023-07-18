@@ -3,36 +3,24 @@ import {ZkClient} from './clients/zkclient';
 import {getToken} from './utilities/getToken';
 
 import type {HollowClientOptions} from './interfaces/options.interface';
-import type {IHollowClient} from './interfaces/client.interface';
+import type {HollowClient} from './interfaces/client.interface';
 
-class HollowClient {
-  private readonly useZk: boolean = false;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function createHollowClient<T = any>(
+  opt: HollowClientOptions
+): Promise<HollowClient<T>> {
+  const authToken = await getToken(opt.db, opt.apiKey);
 
-  private constructor(opt: HollowClientOptions) {
-    if (opt.zkOptions) {
-      this.useZk = true;
+  if (opt.zkOptions) {
+    if (!opt.zkOptions.protocol || !opt.zkOptions.secret) {
+      throw new Error('Protocol and preimage are required for zk');
     }
-  }
-
-  public static async createAsync(
-    opt: HollowClientOptions
-  ): Promise<IHollowClient> {
-    const client = new HollowClient(opt);
-
-    const authToken = await getToken(opt.db, opt.apiKey);
-
-    if (client.useZk) {
-      if (!opt.zkOptions?.protocol || !opt.zkOptions?.secret) {
-        throw new Error('Protocol and preimage are required for zk');
-      }
-
-      return new ZkClient(opt, authToken);
-    } else {
-      return new Client(opt, authToken);
-    }
+    return new ZkClient<T>(opt, authToken);
+  } else {
+    return new Client<T>(opt, authToken);
   }
 }
 
-// TODO: why did we export IHollowClient?
-export type {HollowClientOptions};
-export {HollowClient};
+// TODO: why did we export HollowClient?
+export type {HollowClientOptions, HollowClient};
+export {createHollowClient};

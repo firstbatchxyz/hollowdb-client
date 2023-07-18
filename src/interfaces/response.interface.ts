@@ -1,6 +1,9 @@
-export interface IServerResponse<T extends 'get' | 'write' = 'get' | 'write'> {
+export interface IServerResponse<
+  T,
+  M extends 'get' | 'write' = 'get' | 'write'
+> {
   message: string;
-  data?: T extends 'get' ? {result: object | string} : undefined;
+  data?: M extends 'get' ? {result: T} : undefined;
   newBearer?: string;
 }
 

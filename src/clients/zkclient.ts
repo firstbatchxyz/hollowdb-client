@@ -1,120 +1,111 @@
-import {createHash} from 'crypto';
 import path from 'path';
-import {HollowDBError} from '../utilities/errors';
-
+import {createHash} from 'crypto';
 import {poseidon1} from 'poseidon-lite';
 const snarkjs = require('snarkjs');
 
 import {Base} from './base';
+import {HollowDBError} from '../utilities/errors';
 import type {IServerResponse} from '../interfaces/response.interface';
 import type {HollowClientOptions} from '../interfaces/options.interface';
 
-export class ZkClient extends Base {
-  private readonly protocol: 'groth16' | 'plonk';
+export class ZkClient<T> extends Base<T> {
+  public readonly protocol: 'groth16' | 'plonk';
   private readonly secret: string;
-
   private readonly wasmPath: string;
   private readonly proverPath: string;
 
   constructor(opt: HollowClientOptions, authToken: string) {
     super(opt, authToken);
+    if (!opt.zkOptions) {
+      throw new Error('Expected zkOptions for zkClient');
+    }
 
-    if (!opt.zkOptions?.protocol || !opt.zkOptions?.secret)
-      throw new Error('Protocol and preimage are required for zk');
+    const {protocol, secret} = opt.zkOptions;
+    if (protocol === undefined || secret === undefined)
+      throw new Error('Expected protocol and secret for zkClient');
 
-    this.protocol = opt.zkOptions?.protocol;
-    this.secret = opt.zkOptions?.secret;
-
+    this.protocol = protocol;
+    this.secret = secret;
     this.wasmPath = path.join(
       './node_modules/hollowdb-client/circuits',
-      `hollow-authz-${this.protocol}`,
+      `hollow-authz-${protocol}`,
       'hollow-authz.wasm'
     );
     this.proverPath = path.join(
       './node_modules/hollowdb-client/circuits',
-      `hollow-authz-${this.protocol}`,
+      `hollow-authz-${protocol}`,
       'prover_key.zkey'
     );
   }
 
-  public async get(key: string): Promise<object | string> {
-    const preImage = this.computePreimage(key);
-    const computedKey = this.computeKey(preImage);
+  public async get(key: string): Promise<T> {
+    const {computedKey} = this.computeHashedKey(key);
 
-    const response: IServerResponse<'get'> = await this.fetchHandler({
+    const response: IServerResponse<T, 'get'> = await this.fetchHandler({
       op: 'get',
       key: computedKey,
     });
+    if (!response.data) {
+      throw new HollowDBError({
+        message: 'HollowDB Get Error: Unknown error',
+      });
+    }
 
-    if (response.data) return response.data.result;
-
-    throw new HollowDBError({
-      message: 'HollowDB Get Error: Unknown error',
-    });
+    return response.data.result;
   }
 
-  public async put(key: string, value: string | object): Promise<void> {
-    const preImage = this.computePreimage(key);
-    const computedKey = this.computeKey(preImage);
-
+  public async put(key: string, value: T): Promise<void> {
+    const {computedKey} = this.computeHashedKey(key);
     await this.fetchHandler({
       op: 'put',
       body: JSON.stringify({key: computedKey, value}),
     });
   }
 
-  public async update(key: string, value: string | object): Promise<void> {
-    const preImage = this.computePreimage(key);
-    const computedKey = this.computeKey(preImage);
+  public async update(key: string, value: T): Promise<void> {
+    const {preimage, computedKey} = this.computeHashedKey(key);
 
-    const getResponse: IServerResponse<'get'> = await this.fetchHandler({
+    const getResponse: IServerResponse<T, 'get'> = await this.fetchHandler({
       op: 'get',
       key: computedKey,
     });
-
-    if (!getResponse.data)
+    if (!getResponse.data) {
       throw new HollowDBError({
         message:
           'HollowDB Update Error: Server Response was OK but data was empty',
       });
+    }
 
-    const curValue = getResponse.data.result;
-
-    const fullProof = await this.generateProof(
-      preImage,
-      curValue,
-      value,
-      this.protocol
+    const {proof} = await this.generateProof(
+      preimage,
+      getResponse.data.result,
+      value
     );
 
     await this.fetchHandler({
       op: 'update',
-      body: JSON.stringify({key: computedKey, value, proof: fullProof.proof}),
+      body: JSON.stringify({key: computedKey, value, proof}),
     });
   }
 
   public async remove(key: string): Promise<void> {
-    const preImage = this.computePreimage(key);
-    const computedKey = this.computeKey(preImage);
+    const {preimage, computedKey} = this.computeHashedKey(key);
 
-    const getResponse: IServerResponse<'get'> = await this.fetchHandler({
+    const getResponse: IServerResponse<T, 'get'> = await this.fetchHandler({
       op: 'get',
       key: computedKey,
     });
-
-    if (!getResponse.data)
+    if (!getResponse.data) {
       throw new HollowDBError({
         message:
           'HollowDB Remove Error: Server Response was OK but data was empty',
       });
-
-    const curValue = getResponse.data.result;
+    }
 
     const fullProof = await this.generateProof(
-      preImage,
-      curValue,
-      null,
-      this.protocol
+      preimage,
+      getResponse.data.result,
+      null
     );
 
     await this.fetchHandler({
@@ -126,8 +117,7 @@ export class ZkClient extends Base {
   private async generateProof(
     preimage: bigint,
     curValue: unknown | null,
-    nextValue: unknown | null,
-    protocol: 'groth16' | 'plonk'
+    nextValue: unknown | null
   ): Promise<{
     proof: object;
     publicSignals: [
@@ -136,7 +126,7 @@ export class ZkClient extends Base {
       key: string
     ];
   }> {
-    const fullProof = await snarkjs[protocol].fullProve(
+    const fullProof = await snarkjs[this.protocol].fullProve(
       {
         preimage,
         curValueHash: curValue ? this.valueToBigInt(curValue) : 0n,
@@ -151,18 +141,16 @@ export class ZkClient extends Base {
   /**
    * Given a key, prepends the client secret to it and maps to
    * a bigint to be used a the preimage for the actual key derivation.
+   *
+   * Then, using Poseidon hash the actual key is computed.
    */
-  private computePreimage(key: string) {
-    return this.valueToBigInt(`${this.secret}.${key}`);
-  }
-
-  /**
-   * Compute the key that only you can know the preimage of.
-   * @param preimage your secret, the preimage of the key
-   * @returns Poseidon hash of your secret as an hexadecimal string
-   */
-  private computeKey(preimage: bigint): string {
-    return '0x' + poseidon1([preimage]).toString(16);
+  private computeHashedKey(key: string): {
+    preimage: bigint;
+    computedKey: string;
+  } {
+    const preimage = this.valueToBigInt(`${this.secret}.${key}`);
+    const computedKey = '0x' + poseidon1([preimage]).toString(16);
+    return {preimage, computedKey};
   }
 
   /**
