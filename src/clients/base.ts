@@ -1,4 +1,4 @@
-import {getToken} from '../utilities/tokengetter';
+import {getToken} from '../utilities/getToken';
 
 import type {IHollowClient} from '../interfaces/client.interface';
 import type {IFetchHandler} from '../interfaces/fetch.interface';
@@ -6,46 +6,57 @@ import type {IServerResponse} from '../interfaces/response.interface';
 import type {HollowClientOptions} from '../interfaces/options.interface';
 import {HollowDBError} from '../utilities/errors';
 
+/** Base API URL */
+const BASE_URL = 'http://localhost:3000'; //TODO: change to the real url
+
 export abstract class Base implements IHollowClient {
-  // protected readonly dbUrl =
-  //   'http://k8s-default-ingressh-1b5e0101ad-238028031.us-east-1.elb.amazonaws.com'; //TODO: change to the real url
-  protected readonly dbUrl = 'http://localhost:3000'; //TODO: change to the real url
   protected readonly apiKey: string;
   protected authToken: string;
   protected db: string;
 
+  // TODO: any reason why HollowClientOptions does not have `authToken`?
   constructor(opt: HollowClientOptions, authToken: string) {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;
     this.db = opt.db;
   }
 
-  protected async fetchHandler(
-    opt: IFetchHandler
-  ): Promise<IServerResponse<'get' | 'write'>> {
+  protected async fetchHandler(opt: IFetchHandler): Promise<IServerResponse> {
     const url =
       opt.op === 'get'
-        ? `${this.dbUrl}/${opt.op}/${opt.key}`
-        : `${this.dbUrl}/${opt.op}`;
+        ? `${BASE_URL}/${opt.op}/${opt.key}`
+        : `${BASE_URL}/${opt.op}`;
 
-    const response = await fetch(url, {
-      method: opt.op === 'get' ? 'GET' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        authorization: `Bearer ${this.authToken}`,
-      },
-      ...(opt.body && {
-        body: opt.body,
-      }),
-    });
+    const headers: RequestInit['headers'] = {
+      'Content-Type': 'application/json',
+      'x-api-key': this.apiKey,
+      authorization: `Bearer ${this.authToken}`,
+    };
 
-    const json: IServerResponse<'get' | 'write'> = await response.json();
+    const response = await fetch(
+      url,
+      opt.op === 'get'
+        ? {
+            headers,
+            method: 'GET',
+          }
+        : {
+            headers,
+            method: 'POST',
+            body: opt.body,
+          }
+    );
 
+    const json: IServerResponse = await response.json();
     if (response.status === 200) {
-      if (json.newBearer) this.authToken = json.newBearer;
+      // new bearer has been created due to expiration of previous
+      if (json.newBearer !== undefined) {
+        this.authToken = json.newBearer;
+      }
       return json;
     } else {
+      // TODO: this does not mean token expired, it may be any other error
+      // such as internal server error, invalid path or whatever
       if (json.message === 'token expired') {
         this.authToken = await getToken(this.db, this.apiKey);
         return json;

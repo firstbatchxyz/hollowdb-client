@@ -1,10 +1,11 @@
 {
   "name": "hollowdb-client",
-  "description": "hollowdb client, intended to be used with hollowdb servers",
-  "version": "1.0.0",
+  "description": "HollowDB client",
+  "version": "0.0.1",
   "author": "FirstBatch Team <dev@firstbatch.xyz>",
   "contributors": [
-    "Faruk Can Özkan <farukcan@firstbatch.xyz>"
+    "Faruk Can Özkan <farukcan@firstbatch.xyz>",
+    "Erhan Tezcan <erhan@firstbatch.xyz>"
   ],
   "homepage": "https://github.com/firstbatchxyz/hollowdb#readme",
   "license": "MIT",

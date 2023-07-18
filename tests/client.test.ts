@@ -17,6 +17,7 @@ describe('client test', () => {
     };
 
     client = await HollowClient.createAsync(opt);
+    
     key = randomUUID();
   });
 

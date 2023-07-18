@@ -123,19 +123,6 @@ export class ZkClient extends Base {
     });
   }
 
-  private computePreimage(key: string) {
-    return this.valueToBigInt(`${this.secret}.${key}`);
-  }
-
-  /**
-   * Compute the key that only you can know the preimage of.
-   * @param preimage your secret, the preimage of the key
-   * @returns Poseidon hash of your secret as an hexadecimal string
-   */
-  private computeKey(preimage: bigint): string {
-    return '0x' + poseidon1([preimage]).toString(16);
-  }
-
   private async generateProof(
     preimage: bigint,
     curValue: unknown | null,
@@ -159,6 +146,23 @@ export class ZkClient extends Base {
       this.proverPath
     );
     return fullProof;
+  }
+
+  /**
+   * Given a key, prepends the client secret to it and maps to
+   * a bigint to be used a the preimage for the actual key derivation.
+   */
+  private computePreimage(key: string) {
+    return this.valueToBigInt(`${this.secret}.${key}`);
+  }
+
+  /**
+   * Compute the key that only you can know the preimage of.
+   * @param preimage your secret, the preimage of the key
+   * @returns Poseidon hash of your secret as an hexadecimal string
+   */
+  private computeKey(preimage: bigint): string {
+    return '0x' + poseidon1([preimage]).toString(16);
   }
 
   /**

@@ -1,5 +1,9 @@
-export interface IFetchHandler {
-  op: 'put' | 'update' | 'remove' | 'get';
-  key?: string;
-  body?: BodyInit;
-}
+export type IFetchHandler =
+  | {
+      op: 'get';
+      key: string;
+    }
+  | {
+      op: 'put' | 'update' | 'remove';
+      body: BodyInit;
+    };
