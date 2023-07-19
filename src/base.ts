@@ -1,11 +1,11 @@
-import {getToken} from '../utilities';
+import {getToken} from './utilities';
 
 import type {
   HollowClientOptions,
   ServerResponse,
   HollowClient,
-} from '../interfaces';
-import {HollowDBError} from '../errors';
+} from './interfaces';
+import {HollowDBError} from './errors';
 
 const BASE_URL =
   process.env.NODE_ENV === 'test'
@@ -14,10 +14,10 @@ const BASE_URL =
 
 export abstract class Base<T> implements HollowClient<T> {
   protected readonly apiKey: string;
+  protected readonly db: string;
   protected authToken: string;
-  protected db: string;
 
-  // auth token is retrieved by the client code, so it is not provided in opt
+  // auth token is retrieved by the client code, so it is not provided within `opt`
   constructor(opt: HollowClientOptions, authToken: string) {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;

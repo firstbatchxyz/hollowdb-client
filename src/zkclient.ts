@@ -4,10 +4,10 @@ import {poseidon1} from 'poseidon-lite';
 const snarkjs = require('snarkjs');
 
 import {Base} from './base';
-import type {HollowClientOptions} from '../interfaces';
+import type {HollowClientOptions} from './interfaces';
 
 export class ZkClient<T> extends Base<T> {
-  public readonly protocol: 'groth16' | 'plonk';
+  private readonly protocol: 'groth16' | 'plonk';
   private readonly secret: string;
   private readonly wasmPath: string;
   private readonly proverPath: string;
@@ -39,13 +39,11 @@ export class ZkClient<T> extends Base<T> {
 
   public async get(key: string): Promise<T> {
     const {computedKey} = this.computeHashedKey(key);
-
     return await this.read(computedKey);
   }
 
   public async put(key: string, value: T): Promise<void> {
     const {computedKey} = this.computeHashedKey(key);
-
     await this.write('put', JSON.stringify({key: computedKey, value}));
   }
 
@@ -115,7 +113,6 @@ export class ZkClient<T> extends Base<T> {
    * - `ripemd160` outputs a hex string, which can be converted into a `bigint`.
    * - Since the result is 160 bits, it is for sure within the finite field of BN128.
    * @see https://docs.circom.io/background/background/#signals-of-a-circuit
-   * @param value any kind of value
    */
   private valueToBigInt(value: unknown): bigint {
     if (value) {

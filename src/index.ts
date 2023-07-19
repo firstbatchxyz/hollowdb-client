@@ -1,7 +1,6 @@
-import {Client} from './clients/client';
-import {ZkClient} from './clients/zkclient';
+import {Client} from './client';
+import {ZkClient} from './zkclient';
 import {getToken} from './utilities';
-
 import type {HollowClient, HollowClientOptions} from './interfaces';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
