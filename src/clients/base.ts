@@ -1,25 +1,30 @@
-import {getToken} from '../utilities/getToken';
+import {getToken} from '../utilities';
 
-import type {HollowClient} from '../interfaces/client.interface';
-import type {IServerResponse} from '../interfaces/response.interface';
-import type {HollowClientOptions} from '../interfaces/options.interface';
-import {HollowDBError} from '../utilities/errors';
+import type {
+  HollowClientOptions,
+  ServerResponse,
+  HollowClient,
+} from '../interfaces';
+import {HollowDBError} from '../errors';
 
-const BASE_URL = 'http://localhost:3000'; //TODO: change to the real url
+const BASE_URL =
+  process.env.NODE_ENV === 'test'
+    ? 'http://localhost:3000' // Jest makes `NODE_ENV=test` by default
+    : 'http://localhost:9999'; // TODO: change to the real url
 
 export abstract class Base<T> implements HollowClient<T> {
   protected readonly apiKey: string;
   protected authToken: string;
   protected db: string;
 
-  // TODO: any reason why HollowClientOptions does not have `authToken`?
+  // auth token is retrieved by the client code, so it is not provided in opt
   constructor(opt: HollowClientOptions, authToken: string) {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;
     this.db = opt.db;
   }
 
-  protected async fetchHandler(
+  protected async fetchHandler<T>(
     opt:
       | {
           op: 'get';
@@ -29,7 +34,7 @@ export abstract class Base<T> implements HollowClient<T> {
           op: 'put' | 'update' | 'remove';
           body: BodyInit;
         }
-  ): Promise<IServerResponse<T>> {
+  ): Promise<ServerResponse<T>> {
     const url =
       opt.op === 'get'
         ? `${BASE_URL}/${opt.op}/${opt.key}`
@@ -55,20 +60,17 @@ export abstract class Base<T> implements HollowClient<T> {
           }
     );
 
-    const json: IServerResponse<T> = await response.json();
+    const json: ServerResponse<T> = await response.json();
     if (response.status === 200) {
       // new bearer has been created due to expiration of previous
       if (json.newBearer !== undefined) {
         this.authToken = json.newBearer;
       }
       return json;
-    } else {
-      // TODO: this does not mean token expired, it may be any other error
-      // such as internal server error, invalid path or whatever
-      if (json.message === 'token expired') {
-        this.authToken = await getToken(this.db, this.apiKey);
-        return json;
-      }
+    } else if (json.message === 'token expired') {
+      // TODO: potential security issue? the server response json.message may be fabricated perhaps
+      this.authToken = await getToken(this.db, this.apiKey);
+      return json;
     }
 
     throw new HollowDBError({

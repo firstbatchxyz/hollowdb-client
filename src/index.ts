@@ -1,9 +1,8 @@
 import {Client} from './clients/client';
 import {ZkClient} from './clients/zkclient';
-import {getToken} from './utilities/getToken';
+import {getToken} from './utilities';
 
-import type {HollowClientOptions} from './interfaces/options.interface';
-import type {HollowClient} from './interfaces/client.interface';
+import type {HollowClient, HollowClientOptions} from './interfaces';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function createHollowClient<T = any>(
@@ -21,6 +20,5 @@ async function createHollowClient<T = any>(
   }
 }
 
-// TODO: why did we export HollowClient?
 export type {HollowClientOptions, HollowClient};
 export {createHollowClient};

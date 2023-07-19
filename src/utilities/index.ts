@@ -1,11 +1,11 @@
-import type {IAuthResponse} from '../interfaces/response.interface';
-import {AuthError} from './errors';
+import type {AuthResponse} from '../interfaces';
+import {AuthError} from '../errors';
 
 /**
+ * Given a database name `db` and an api-key `apiKey`, fetches the
+ * bearer token to be used in header as `authorization: "Bearer ${token}"`.
  *
- * @param db database name
- * @param apiKey api key
- * @returns bearer token to be used in header as `authorization: "Bearer ${token}"`
+ * If `db` or `apiKey` is invalid, throws an error.
  */
 export async function getToken(db: string, apiKey: string): Promise<string> {
   const response = await fetch(
@@ -19,7 +19,7 @@ export async function getToken(db: string, apiKey: string): Promise<string> {
     }
   );
 
-  const authResponse: IAuthResponse = await response.json();
+  const authResponse: AuthResponse = await response.json();
   if (!response.ok) {
     if (authResponse.message) {
       throw new AuthError({

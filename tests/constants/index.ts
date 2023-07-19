@@ -1,3 +1,4 @@
+// move this to data
 export const payload = {
   name: 'John Doe',
   age: 10000000000,
@@ -7,3 +8,5 @@ export const payload = {
     someArray: ['string', 'string'],
   },
 };
+
+// add api key and stuff here

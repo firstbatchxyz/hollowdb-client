@@ -4,9 +4,8 @@ import {poseidon1} from 'poseidon-lite';
 const snarkjs = require('snarkjs');
 
 import {Base} from './base';
-import {HollowDBError} from '../utilities/errors';
-import type {IServerResponse} from '../interfaces/response.interface';
-import type {HollowClientOptions} from '../interfaces/options.interface';
+import {HollowDBError} from '../errors';
+import type {HollowClientOptions, ServerResponse} from '../interfaces';
 
 export class ZkClient<T> extends Base<T> {
   public readonly protocol: 'groth16' | 'plonk';
@@ -16,13 +15,14 @@ export class ZkClient<T> extends Base<T> {
 
   constructor(opt: HollowClientOptions, authToken: string) {
     super(opt, authToken);
+
     if (!opt.zkOptions) {
       throw new Error('Expected zkOptions for zkClient');
     }
-
     const {protocol, secret} = opt.zkOptions;
-    if (protocol === undefined || secret === undefined)
+    if (protocol === undefined || secret === undefined) {
       throw new Error('Expected protocol and secret for zkClient');
+    }
 
     this.protocol = protocol;
     this.secret = secret;
@@ -41,7 +41,7 @@ export class ZkClient<T> extends Base<T> {
   public async get(key: string): Promise<T> {
     const {computedKey} = this.computeHashedKey(key);
 
-    const response: IServerResponse<T, 'get'> = await this.fetchHandler({
+    const response: ServerResponse<T, 'read'> = await this.fetchHandler({
       op: 'get',
       key: computedKey,
     });
@@ -56,6 +56,7 @@ export class ZkClient<T> extends Base<T> {
 
   public async put(key: string, value: T): Promise<void> {
     const {computedKey} = this.computeHashedKey(key);
+
     await this.fetchHandler({
       op: 'put',
       body: JSON.stringify({key: computedKey, value}),
@@ -65,7 +66,7 @@ export class ZkClient<T> extends Base<T> {
   public async update(key: string, value: T): Promise<void> {
     const {preimage, computedKey} = this.computeHashedKey(key);
 
-    const getResponse: IServerResponse<T, 'get'> = await this.fetchHandler({
+    const getResponse: ServerResponse<T, 'read'> = await this.fetchHandler<T>({
       op: 'get',
       key: computedKey,
     });
@@ -91,7 +92,7 @@ export class ZkClient<T> extends Base<T> {
   public async remove(key: string): Promise<void> {
     const {preimage, computedKey} = this.computeHashedKey(key);
 
-    const getResponse: IServerResponse<T, 'get'> = await this.fetchHandler({
+    const getResponse: ServerResponse<T, 'read'> = await this.fetchHandler({
       op: 'get',
       key: computedKey,
     });
@@ -148,6 +149,8 @@ export class ZkClient<T> extends Base<T> {
     preimage: bigint;
     computedKey: string;
   } {
+    // TODO: use caching here so that these computations dont happen everytime
+    // for the same key
     const preimage = this.valueToBigInt(`${this.secret}.${key}`);
     const computedKey = '0x' + poseidon1([preimage]).toString(16);
     return {preimage, computedKey};

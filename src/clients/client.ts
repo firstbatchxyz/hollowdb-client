@@ -1,8 +1,7 @@
 import {Base} from './base';
-import {HollowDBError} from '../utilities/errors';
+import {HollowDBError} from '../errors';
 
-import type {IServerResponse} from '../interfaces/response.interface';
-import type {HollowClientOptions} from '../interfaces/options.interface';
+import type {HollowClientOptions, ServerResponse} from '../interfaces';
 
 export class Client<T> extends Base<T> {
   constructor(opt: HollowClientOptions, authToken: string) {
@@ -10,7 +9,7 @@ export class Client<T> extends Base<T> {
   }
 
   public async get(key: string): Promise<T> {
-    const response: IServerResponse<T, 'get'> = await this.fetchHandler({
+    const response: ServerResponse<T, 'read'> = await this.fetchHandler({
       op: 'get',
       key,
     });

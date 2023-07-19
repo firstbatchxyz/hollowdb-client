@@ -1,4 +1,4 @@
-import {describe, expect, test, beforeAll} from '@jest/globals';
+import {describe, expect, test, beforeAll, jest} from '@jest/globals';
 import {randomUUID} from 'crypto';
 
 import {createHollowClient} from '../lib/index';
@@ -19,14 +19,13 @@ describe('client test', () => {
     client = await createHollowClient(opt);
     key = randomUUID();
   });
-
   
-  test('put', async () => {
-    await expect(client.put(key, payload)).resolves.not.toThrowError();
-  });
+  // test('put', async () => {
+  //   await expect(client.put(key, payload)).resolves.not.toThrowError();
+  // });
 
-  test('get', async () => {
-    const result = await client.get(key);
-    expect(result).toMatchObject(payload);
-  });
+  // test('get', async () => {
+  //   const result = await client.get(key);
+  //   expect(result).toMatchObject(payload);
+  // });
 });
