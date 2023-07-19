@@ -24,43 +24,41 @@ export abstract class Base<T> implements HollowClient<T> {
     this.db = opt.db;
   }
 
-  protected async fetchHandler<T>(
-    opt:
-      | {
-          op: 'get';
-          key: string;
-        }
-      | {
-          op: 'put' | 'update' | 'remove';
-          body: BodyInit;
-        }
-  ): Promise<ServerResponse<T>> {
-    const url =
-      opt.op === 'get'
-        ? `${BASE_URL}/${opt.op}/${opt.key}`
-        : `${BASE_URL}/${opt.op}`;
+  protected async read(key: string) {
+    const response = await this.fetch<'read'>(`${BASE_URL}/get/${key}`, 'GET');
 
-    const headers: RequestInit['headers'] = {
-      'Content-Type': 'application/json',
-      'x-api-key': this.apiKey,
-      authorization: `Bearer ${this.authToken}`,
+    if (!response.data) {
+      throw new HollowDBError({
+        message: 'No data at this key',
+      });
+    }
+
+    return response.data.result;
+  }
+
+  // TODO: use actual type, not body init
+  protected async write(op: 'put' | 'update' | 'remove', body: BodyInit) {
+    return this.fetch<'write'>(`${BASE_URL}/${op}`, 'POST', body);
+  }
+
+  private async fetch<M extends 'read' | 'write'>(
+    url: string,
+    method: 'GET' | 'POST',
+    body?: BodyInit
+  ) {
+    const init: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        authorization: `Bearer ${this.authToken}`,
+      },
+      method,
     };
+    if (body) init.body = body;
 
-    const response = await fetch(
-      url,
-      opt.op === 'get'
-        ? {
-            headers,
-            method: 'GET',
-          }
-        : {
-            headers,
-            method: 'POST',
-            body: opt.body,
-          }
-    );
+    const response = await fetch(url, init);
 
-    const json: ServerResponse<T> = await response.json();
+    const json = (await response.json()) as ServerResponse<T, M>;
     if (response.status === 200) {
       // new bearer has been created due to expiration of previous
       if (json.newBearer !== undefined) {
@@ -74,7 +72,7 @@ export abstract class Base<T> implements HollowClient<T> {
     }
 
     throw new HollowDBError({
-      message: `${opt.op}: Status: ${response.status} Error: ${json.message}`,
+      message: `${url}: Status: ${response.status} Error: ${json.message}`,
     });
   }
 

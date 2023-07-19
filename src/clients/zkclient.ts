@@ -4,8 +4,7 @@ import {poseidon1} from 'poseidon-lite';
 const snarkjs = require('snarkjs');
 
 import {Base} from './base';
-import {HollowDBError} from '../errors';
-import type {HollowClientOptions, ServerResponse} from '../interfaces';
+import type {HollowClientOptions} from '../interfaces';
 
 export class ZkClient<T> extends Base<T> {
   public readonly protocol: 'groth16' | 'plonk';
@@ -41,78 +40,34 @@ export class ZkClient<T> extends Base<T> {
   public async get(key: string): Promise<T> {
     const {computedKey} = this.computeHashedKey(key);
 
-    const response: ServerResponse<T, 'read'> = await this.fetchHandler({
-      op: 'get',
-      key: computedKey,
-    });
-    if (!response.data) {
-      throw new HollowDBError({
-        message: 'HollowDB Get Error: Unknown error',
-      });
-    }
-
-    return response.data.result;
+    return await this.read(computedKey);
   }
 
   public async put(key: string, value: T): Promise<void> {
     const {computedKey} = this.computeHashedKey(key);
 
-    await this.fetchHandler({
-      op: 'put',
-      body: JSON.stringify({key: computedKey, value}),
-    });
+    await this.write('put', JSON.stringify({key: computedKey, value}));
   }
 
   public async update(key: string, value: T): Promise<void> {
     const {preimage, computedKey} = this.computeHashedKey(key);
 
-    const getResponse: ServerResponse<T, 'read'> = await this.fetchHandler<T>({
-      op: 'get',
-      key: computedKey,
-    });
-    if (!getResponse.data) {
-      throw new HollowDBError({
-        message:
-          'HollowDB Update Error: Server Response was OK but data was empty',
-      });
-    }
+    const oldValue = await this.read(computedKey);
+    const {proof} = await this.generateProof(preimage, oldValue, value);
 
-    const {proof} = await this.generateProof(
-      preimage,
-      getResponse.data.result,
-      value
+    await this.write(
+      'update',
+      JSON.stringify({key: computedKey, value, proof})
     );
-
-    await this.fetchHandler({
-      op: 'update',
-      body: JSON.stringify({key: computedKey, value, proof}),
-    });
   }
 
   public async remove(key: string): Promise<void> {
     const {preimage, computedKey} = this.computeHashedKey(key);
 
-    const getResponse: ServerResponse<T, 'read'> = await this.fetchHandler({
-      op: 'get',
-      key: computedKey,
-    });
-    if (!getResponse.data) {
-      throw new HollowDBError({
-        message:
-          'HollowDB Remove Error: Server Response was OK but data was empty',
-      });
-    }
+    const oldValue = await this.read(computedKey);
+    const {proof} = await this.generateProof(preimage, oldValue, null);
 
-    const fullProof = await this.generateProof(
-      preimage,
-      getResponse.data.result,
-      null
-    );
-
-    await this.fetchHandler({
-      op: 'remove',
-      body: JSON.stringify({key: computedKey, proof: fullProof.proof}),
-    });
+    await this.write('remove', JSON.stringify({key: computedKey, proof}));
   }
 
   private async generateProof(
@@ -127,7 +82,7 @@ export class ZkClient<T> extends Base<T> {
       key: string
     ];
   }> {
-    const fullProof = await snarkjs[this.protocol].fullProve(
+    return snarkjs[this.protocol].fullProve(
       {
         preimage,
         curValueHash: curValue ? this.valueToBigInt(curValue) : 0n,
@@ -136,7 +91,6 @@ export class ZkClient<T> extends Base<T> {
       this.wasmPath,
       this.proverPath
     );
-    return fullProof;
   }
 
   /**
