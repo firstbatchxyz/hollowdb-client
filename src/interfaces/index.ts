@@ -1,4 +1,5 @@
-export interface HollowClient<T> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface HollowClient<T = any> {
   get: (key: string) => Promise<T>;
 
   /** todo: write docs here, they will be visible on all clients */
@@ -17,17 +18,3 @@ export type HollowClientOptions = {
     protocol: 'groth16' | 'plonk';
   };
 };
-
-export interface ServerResponse<
-  T,
-  M extends 'read' | 'write' = 'read' | 'write'
-> {
-  message: string;
-  data?: M extends 'read' ? {result: T} : undefined;
-  newBearer?: string;
-}
-
-export interface AuthResponse {
-  message?: string;
-  bearerToken?: string;
-}

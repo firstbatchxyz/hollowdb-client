@@ -1,5 +1,4 @@
-build/
-lib/
-node_modules/
-tests/
+build
+lib
+node_modules
 circuits

@@ -1,16 +1,10 @@
 import {getToken} from './utilities';
 
-import type {
-  HollowClientOptions,
-  ServerResponse,
-  HollowClient,
-} from './interfaces';
+import type {HollowClientOptions, HollowClient} from './interfaces';
 import {HollowDBError} from './errors';
 
-const BASE_URL =
-  process.env.NODE_ENV === 'test'
-    ? 'http://localhost:3000' // Jest makes `NODE_ENV=test` by default
-    : 'http://localhost:9999'; // TODO: change to the real url
+// TODO: change to the real url
+const BASE_URL = 'http://localhost:3000';
 
 export abstract class Base<T> implements HollowClient<T> {
   protected readonly apiKey: string;
@@ -58,7 +52,11 @@ export abstract class Base<T> implements HollowClient<T> {
 
     const response = await fetch(url, init);
 
-    const json = (await response.json()) as ServerResponse<T, M>;
+    const json = (await response.json()) as {
+      message: string;
+      data?: M extends 'read' ? {result: T} : undefined;
+      newBearer?: string;
+    };
     if (response.status === 200) {
       // new bearer has been created due to expiration of previous
       if (json.newBearer !== undefined) {

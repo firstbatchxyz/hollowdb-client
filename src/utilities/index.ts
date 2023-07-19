@@ -1,4 +1,3 @@
-import type {AuthResponse} from '../interfaces';
 import {AuthError} from '../errors';
 
 /**
@@ -19,7 +18,10 @@ export async function getToken(db: string, apiKey: string): Promise<string> {
     }
   );
 
-  const authResponse: AuthResponse = await response.json();
+  const authResponse = (await response.json()) as {
+    message?: string;
+    bearerToken?: string;
+  };
   if (!response.ok) {
     if (authResponse.message) {
       throw new AuthError({

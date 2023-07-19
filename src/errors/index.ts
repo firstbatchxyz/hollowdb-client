@@ -11,7 +11,7 @@ class ErrorBase extends Error {
     this.name = name;
     this.message = message;
     this.helper = helper;
-    this.stack = undefined;
+    // this.stack = undefined;
   }
 }
 
