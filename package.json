@@ -12,7 +12,7 @@
   "scripts": {
     "prebuild": "yarn clean:lib && yarn lint",
     "build": "parcel build",
-    "test": "jest",
+    "test": "jest --coverage",
     "clean": "gts clean",
     "clean:lib": "rimraf ./lib",
     "lint": "gts lint",

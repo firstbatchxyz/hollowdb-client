@@ -33,19 +33,19 @@ const NEXT_VALUE = {
 
     it('should put & get a value', async () => {
       expect(await client.get(KEY)).toEqual(null);
-      await expect(client.put(KEY, VALUE)).resolves.not.toThrowError();
+      await client.put(KEY, VALUE);
       expect(await client.get(KEY)).toEqual(VALUE);
     });
 
     it('should update a value', async () => {
       expect(await client.get(KEY)).toEqual(VALUE);
-      await expect(client.update(KEY, NEXT_VALUE)).resolves.not.toThrowError();
+      await client.update(KEY, NEXT_VALUE);
       expect(await client.get(KEY)).toEqual(NEXT_VALUE);
     });
 
     it('should remove a value', async () => {
       expect(await client.get(KEY)).toEqual(NEXT_VALUE);
-      await expect(client.remove(KEY)).resolves.not.toThrowError();
+      await client.remove(KEY);
       expect(await client.get(KEY)).toEqual(null);
     });
 

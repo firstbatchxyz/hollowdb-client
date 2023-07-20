@@ -14,7 +14,7 @@ export const mockFetchDB = jest.fn(
     if (url.startsWith('https://auth.firstbatch.xyz/hollow/create_bearer')) {
       return {
         ok: true,
-        json: async () => ({bearerToken: 'bearer-test'}),
+        json: async () => ({bearerToken: randomBytes(32).toString('hex')}),
       } as Response;
     }
 
@@ -83,34 +83,103 @@ export const mockFetchDB = jest.fn(
   }
 );
 
-/** A mocked fetch call, just answers get and  */
+/** A mocked fetch call, just answers get and refreshes a token. */
 const NEW_AUTH_TOKEN = randomBytes(32).toString('hex');
 let refreshed = false;
 export const mockFetchGetRefresh = jest.fn(
   async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input.toString();
-    console.log(init?.headers);
-    console.log(url);
 
     // mock auth call
     if (url.startsWith('https://auth.firstbatch.xyz/hollow/create_bearer')) {
       return {
         ok: true,
-        json: async () => ({bearerToken: 'bearer-test'}),
+        json: async () => ({bearerToken: randomBytes(32).toString('hex')}),
       } as Response;
     }
 
     // mock get call with refresh
     else if (url.startsWith(`${BASE_URL}/get/`)) {
-      refreshed = true;
+      if (refreshed) {
+        if (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (init!.headers! as any)['authorization'] !==
+          `Bearer ${NEW_AUTH_TOKEN}`
+        ) {
+          throw new Error('expected refreshed token');
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            message: '',
+            data: {result: 'value'},
+          }),
+        } as Response;
+      } else {
+        refreshed = true;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            message: '',
+            data: {result: 'value'},
+            newBearer: NEW_AUTH_TOKEN,
+          }),
+        } as Response;
+      }
+    }
+
+    throw new Error('couldnt mock');
+  }
+);
+
+/** A mocked fetch call, just answers get and refreshes a token. */
+let oldtoken: string;
+let refreshed2 = false;
+export const mockFetchGetExpire = jest.fn(
+  async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = input.toString();
+    // mock auth call
+    if (url.startsWith('https://auth.firstbatch.xyz/hollow/create_bearer')) {
       return {
         ok: true,
         json: async () => ({
-          bearerToken: 'bearer-test',
-          message: '',
-          data: {result: 'value'},
+          bearerToken: randomBytes(32).toString('hex'),
         }),
       } as Response;
+    }
+
+    // mock get call with refresh
+    else if (url.startsWith(`${BASE_URL}/get/`)) {
+      if (refreshed2) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((init!.headers! as any)['authorization'] === `Bearer ${oldtoken}`) {
+          throw new Error('expected refreshed token');
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            message: '',
+            data: {result: 'value'},
+          }),
+        } as Response;
+      } else {
+        refreshed2 = true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        oldtoken = (init!.headers! as any)['authorization'];
+        return {
+          ok: true,
+          status: 403, // should be != 200
+          json: async () => ({
+            message: 'token expired', // this will trigger a token refresh
+            data: {result: 'value'},
+          }),
+        } as Response;
+      }
     }
 
     throw new Error('couldnt mock');
