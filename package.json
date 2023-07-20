@@ -7,8 +7,28 @@
     "Faruk Can Özkan <farukcan@firstbatch.xyz>",
     "Erhan Tezcan <erhan@firstbatch.xyz>"
   ],
-  "homepage": "https://github.com/firstbatchxyz/hollowdb#readme",
+  "homepage": "https://github.com/firstbatchxyz/hollowdb-client#readme",
   "license": "MIT",
+  "scripts": {
+    "prebuild": "yarn clean:lib && yarn lint",
+    "build": "parcel build",
+    "test": "jest",
+    "clean": "gts clean",
+    "clean:lib": "rimraf ./lib",
+    "lint": "gts lint",
+    "format": "prettier --write './src/**/*.ts'",
+    "prepublishOnly": "yarn lint",
+    "preversion": "yarn lint && yarn build",
+    "version": "yarn format && git add -A src",
+    "postversion": "git push && git push --tags",
+    "yalc:publish": "yarn build && yalc publish --push"
+  },
+  "files": [
+    "circuits/",
+    "lib/",
+    "LICENSE",
+    "README.md"
+  ],
   "type": "module",
   "source": "src/index.ts",
   "types": "lib/index.d.ts",
@@ -32,12 +52,6 @@
       "context": "node"
     }
   },
-  "files": [
-    "circuits/",
-    "lib/",
-    "LICENSE",
-    "README.md"
-  ],
   "engines": {
     "node": ">=10.6.0"
   },
@@ -57,20 +71,6 @@
     "rimraf": "^5.0.1",
     "ts-jest": "^29.1.1",
     "typescript": "~4.7.0"
-  },
-  "scripts": {
-    "prebuild": "yarn clean:lib && yarn lint",
-    "build": "parcel build",
-    "test": "jest",
-    "clean": "gts clean",
-    "clean:lib": "rimraf ./lib",
-    "lint": "gts lint",
-    "format": "prettier --write './src/**/*.ts'",
-    "prepublishOnly": "yarn lint",
-    "preversion": "yarn lint && yarn build",
-    "version": "yarn format && git add -A src",
-    "postversion": "git push && git push --tags",
-    "yalc:publish": "yarn build && yalc publish --push"
   },
   "keywords": [
     "hollowdb",

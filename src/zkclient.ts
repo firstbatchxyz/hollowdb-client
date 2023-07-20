@@ -26,12 +26,16 @@ export class ZkClient<T> extends Base<T> {
     this.protocol = protocol;
     this.secret = secret;
     this.wasmPath = path.join(
-      './node_modules/hollowdb-client/circuits',
+      process.env.NODE_ENV === 'test'
+        ? './circuits/'
+        : './node_modules/hollowdb-client/circuits',
       `hollow-authz-${protocol}`,
       'hollow-authz.wasm'
     );
     this.proverPath = path.join(
-      './node_modules/hollowdb-client/circuits',
+      process.env.NODE_ENV === 'test'
+        ? './circuits/'
+        : './node_modules/hollowdb-client/circuits',
       `hollow-authz-${protocol}`,
       'prover_key.zkey'
     );

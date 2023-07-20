@@ -22,6 +22,7 @@ export abstract class Base<T> implements HollowClient<T> {
     const response = await this.fetch<'read'>(`${BASE_URL}/get/${key}`, 'GET');
 
     if (!response.data) {
+      // TODO: what should be the error message?
       throw new HollowDBError({
         message: 'No data at this key',
       });

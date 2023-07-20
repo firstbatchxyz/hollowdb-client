@@ -1,30 +1,61 @@
-import {randomUUID} from 'crypto';
+import {randomBytes} from 'crypto';
 import {createHollowClient, type HollowClient} from '../src';
-import {mockFetch} from './mocks';
+import {mockFetchDB} from './mocks';
 
-describe('client test', () => {
-  let client: HollowClient;
+const KEY = 'my lovely key';
+const VALUE = {
+  foo: 'bar',
+};
+const NEXT_VALUE = {
+  foo: '123',
+};
 
-  const KEY = 'key123';
-  const VALUE = {
-    foo: 'bar',
-  };
+([null, 'groth16', 'plonk'] as const).map(protocol =>
+  describe(`client ${
+    protocol ? `(protocol: ${protocol})` : '(not zk)'
+  }`, () => {
+    let client: HollowClient<typeof VALUE>;
 
-  beforeAll(async () => {
-    // TODO; where should this be placed?
-    global.fetch = mockFetch;
-    client = await createHollowClient({
-      apiKey: '032c17ddb874904f112057bda9082c28',
-      db: 'test',
+    beforeAll(async () => {
+      global.fetch = mockFetchDB;
+
+      client = await createHollowClient({
+        apiKey: randomBytes(32).toString('hex'),
+        db: 'testing',
+        zkOptions: protocol
+          ? {
+              protocol,
+              secret: randomBytes(16).toString('hex'),
+            }
+          : undefined,
+      });
     });
-  });
 
-  it('should put & get a value', async () => {
-    await expect(client.put(KEY, VALUE)).resolves.not.toThrowError();
-  });
+    it('should put & get a value', async () => {
+      expect(await client.get(KEY)).toEqual(null);
+      await expect(client.put(KEY, VALUE)).resolves.not.toThrowError();
+      expect(await client.get(KEY)).toEqual(VALUE);
+    });
 
-  // test('get', async () => {
-  //   const result = await client.get(key);
-  //   expect(result).toMatchObject(payload);
-  // });
-});
+    it('should update a value', async () => {
+      expect(await client.get(KEY)).toEqual(VALUE);
+      await expect(client.update(KEY, NEXT_VALUE)).resolves.not.toThrowError();
+      expect(await client.get(KEY)).toEqual(NEXT_VALUE);
+    });
+
+    it('should remove a value', async () => {
+      expect(await client.get(KEY)).toEqual(NEXT_VALUE);
+      await expect(client.remove(KEY)).resolves.not.toThrowError();
+      expect(await client.get(KEY)).toEqual(null);
+    });
+
+    afterAll(async () => {
+      jest.clearAllMocks();
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      // SnarkJS may attach curve_bn128 to global, but does not terminate it.
+      if (global.curve_bn128) await global.curve_bn128.terminate();
+    });
+  })
+);
