@@ -27,6 +27,9 @@
     <a href="./.github/workflows/build.yml" target="_blank">
         <img alt="Workflow: Styles" src="https://github.com/firstbatchxyz/hollowdb/actions/workflows/build.yml/badge.svg?branch=master">
     </a> -->
+    <a href="https://github.com/firstbatchxyz/hollowdb" target="_blank">
+        <img alt="GitHub: HollowDB" src="https://img.shields.io/badge/github-hollowdb-5C3EFE?logo=github">
+    </a>
     <a href="https://discord.gg/2wuU9ym6fq" target="_blank">
         <img alt="Discord" src="https://dcbadge.vercel.app/api/server/2wuU9ym6fq?style=flat">
     </a>
