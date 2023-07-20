@@ -23,6 +23,10 @@ export class ZkClient<T> extends Base<T> {
       throw new Error('Expected protocol and secret for zkClient');
     }
 
+    if (protocol !== 'groth16' && protocol !== 'plonk') {
+      throw new Error('Invalid protocol');
+    }
+
     this.protocol = protocol;
     this.secret = secret;
     this.wasmPath = path.join(
