@@ -11,6 +11,10 @@ export class ZkClient<T> extends Base<T> {
   private readonly secret: string;
   private readonly wasmPath: string;
   private readonly proverPath: string;
+  private readonly cache: Record<
+    string,
+    {preimage: bigint; computedKey: string}
+  >;
 
   constructor(opt: HollowClientOptions, authToken: string) {
     super(opt, authToken);
@@ -43,6 +47,7 @@ export class ZkClient<T> extends Base<T> {
       `hollow-authz-${protocol}`,
       'prover_key.zkey'
     );
+    this.cache = {};
   }
 
   public async get(key: string): Promise<T> {
@@ -109,11 +114,16 @@ export class ZkClient<T> extends Base<T> {
     preimage: bigint;
     computedKey: string;
   } {
-    // TODO: use caching here so that these computations dont happen everytime
-    // for the same key
-    const preimage = this.valueToBigInt(`${this.secret}.${key}`);
-    const computedKey = '0x' + poseidon1([preimage]).toString(16);
-    return {preimage, computedKey};
+    if (key in this.cache) {
+      return this.cache[key];
+    } else {
+      const preimage = this.valueToBigInt(`${this.secret}.${key}`);
+      const computedKey = '0x' + poseidon1([preimage]).toString(16);
+
+      this.cache[key] = {preimage, computedKey};
+
+      return {preimage, computedKey};
+    }
   }
 
   /**
