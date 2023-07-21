@@ -2,8 +2,7 @@ import {randomBytes} from 'crypto';
 import {valueToBigInt, verifyProof} from '../utilities';
 
 const BASE_URL = 'http://localhost:3000';
-
-const db: Record<string, unknown> = {};
+const DB: Record<string, unknown> = {};
 
 /** A mocked fetch call, acting like the DB backend. */
 export const mockFetchDB = jest.fn(
@@ -33,29 +32,29 @@ export const mockFetchDB = jest.fn(
 
       switch (op) {
         case 'put':
-          db[body.key] = body.value;
+          DB[body.key] = body.value;
           break;
         case 'update':
           if (body.proof) {
             verifyProof(body.proof, [
-              valueToBigInt(db[body.key]),
+              valueToBigInt(DB[body.key]),
               valueToBigInt(body.value),
               BigInt(body.key),
             ]);
           }
 
-          db[body.key] = body.value;
+          DB[body.key] = body.value;
           break;
         case 'remove':
           if (body.proof) {
             verifyProof(body.proof, [
-              valueToBigInt(db[body.key]),
+              valueToBigInt(DB[body.key]),
               BigInt(0),
               BigInt(body.key),
             ]);
           }
 
-          delete db[body.key];
+          delete DB[body.key];
           break;
         default:
           throw new Error('unexpected op: ' + op);
@@ -71,7 +70,8 @@ export const mockFetchDB = jest.fn(
     // mock read call, no refresh
     else if (url.startsWith(`${BASE_URL}/get/`)) {
       const key = url.slice(`${BASE_URL}/get/`.length);
-      const val = db[key];
+      const decodedKey = decodeURIComponent(key);
+      const val = DB[decodedKey];
       return {
         ok: true,
         status: 200,

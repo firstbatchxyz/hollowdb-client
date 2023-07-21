@@ -19,7 +19,11 @@ export abstract class Base<T> implements HollowClient<T> {
   }
 
   protected async read(key: string) {
-    const response = await this.fetch<'read'>(`${BASE_URL}/get/${key}`, 'GET');
+    const encodedKey = encodeURIComponent(key);
+    const response = await this.fetch<'read'>(
+      `${BASE_URL}/get/${encodedKey}`,
+      'GET'
+    );
 
     if (!response.data) {
       // TODO: what should be the error message?
