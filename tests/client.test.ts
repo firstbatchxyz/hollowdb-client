@@ -1,31 +1,66 @@
-import {describe, expect, test, beforeAll} from '@jest/globals';
-import {randomUUID} from 'crypto';
+import {randomBytes} from 'crypto';
+import {createHollowClient, type HollowClient} from '../src';
+import {mockFetchDB} from './mocks';
 
-import {HollowClient} from '../lib/index';
-import {payload} from './constants';
+const KEY = 'my lovely testing key';
+type ValueType = {
+  test: number;
+  foo: string;
+};
 
-import type {IHollowClient, HollowClientOptions} from '../lib/index';
+// we can add plonk here too, but note that it has HUGE prover time
+([null, 'groth16'] as const).map(protocol =>
+  describe(`client ${
+    protocol ? `(protocol: ${protocol})` : '(not zk)'
+  }`, () => {
+    let client: HollowClient<ValueType>;
+    const values: ValueType[] = Array.from({length: 10}, () => ({
+      test: Math.random() * 99,
+      foo: randomBytes(4).toString('hex'),
+    }));
 
-describe('client test', () => {
-  let client: IHollowClient;
-  let key: string;
+    beforeAll(async () => {
+      global.fetch = mockFetchDB;
 
-  beforeAll(async () => {
-    const opt: HollowClientOptions = {
-      apiKey: '032c17ddb874904f112057bda9082c28',
-      db: 'test',
-    };
+      client = await createHollowClient({
+        apiKey: randomBytes(32).toString('hex'),
+        db: 'testing',
+        zkOptions: protocol
+          ? {
+              protocol,
+              secret: randomBytes(16).toString('hex'),
+            }
+          : undefined,
+      });
+    });
 
-    client = await HollowClient.createAsync(opt);
-    key = randomUUID();
-  });
+    it('should put value', async () => {
+      expect(await client.get(KEY)).toEqual(null);
+      await client.put(KEY, values[0]);
+      expect(await client.get(KEY)).toEqual(values[0]);
+    });
 
-  test('put', async () => {
-    await expect(client.put(key, payload)).resolves.not.toThrowError();
-  });
+    it('should update values', async () => {
+      for (let i = 1; i < values.length; i++) {
+        expect(await client.get(KEY)).toEqual(values[i - 1]);
+        await client.update(KEY, values[i]);
+        expect(await client.get(KEY)).toEqual(values[i]);
+      }
+    });
 
-  test('get', async () => {
-    const result = await client.get(key);
-    expect(result).toMatchObject(payload);
-  });
-});
+    it('should remove value', async () => {
+      expect(await client.get(KEY)).toEqual(values[values.length - 1]);
+      await client.remove(KEY);
+      expect(await client.get(KEY)).toEqual(null);
+    });
+
+    afterAll(async () => {
+      jest.clearAllMocks();
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      // SnarkJS may attach curve_bn128 to global, but does not terminate it.
+      if (global.curve_bn128) await global.curve_bn128.terminate();
+    });
+  })
+);

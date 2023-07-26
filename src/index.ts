@@ -1,34 +1,50 @@
-import {Client} from './clients/client';
-import {ZkClient} from './clients/zkclient';
-import {getToken} from './utilities/tokengetter';
+import {Client} from './client';
+import {ZkClient} from './zkclient';
+import {getToken} from './utilities';
+import type {HollowClient, HollowClientOptions} from './interfaces';
 
-import type {HollowClientOptions} from './interfaces/options.interface';
-import type {IHollowClient} from './interfaces/client.interface';
+/**
+ * **Creates & authenticates a HollowDB client.**
+ *
+ * You can create the client without using zero-knowledge proofs:
+ *
+ * ```ts
+ * client = await createHollowClient({
+ *   apiKey: 'your-api-key',
+ *   db: 'your-database-name',
+ * });
+ *
+ * or you can provide `zkOptions` to enable zero-knowledge proofs:
+ *
+ * ```ts
+ * client = await createHollowClient({
+ *   apiKey: 'your-api-key',
+ *   db: 'your-database-name',
+ *   zkOptions: {
+ *     protocol: 'groth16', // or 'plonk'
+ *     secret: "your-secret,
+ *   },
+ * });
+ * ```
+ *
+ * You can provide a value type to the function to make all functions treat that type
+ * as the value type for your key-value database.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function createHollowClient<T = any>(
+  options: HollowClientOptions
+): Promise<HollowClient<T>> {
+  const authToken = await getToken(options.db, options.apiKey);
 
-class HollowClient {
-  private readonly useZk: boolean = false;
-
-  private constructor(opt: HollowClientOptions) {
-    if (opt.zkOptions) this.useZk = true;
-  }
-
-  public static async createAsync(
-    opt: HollowClientOptions
-  ): Promise<IHollowClient> {
-    const client = new HollowClient(opt);
-
-    const authToken = await getToken(opt.db, opt.apiKey);
-
-    if (client.useZk) {
-      if (!opt.zkOptions?.protocol || !opt.zkOptions?.secret)
-        throw new Error('Protocol and preimage are required for zk');
-
-      return new ZkClient(opt, authToken);
+  if (options.zkOptions) {
+    if (!options.zkOptions.protocol || !options.zkOptions.secret) {
+      throw new Error('Protocol and preimage are required for zk');
     }
-
-    return new Client(opt, authToken);
+    return new ZkClient<T>(options, authToken);
+  } else {
+    return new Client<T>(options, authToken);
   }
 }
 
-export type {HollowClientOptions, IHollowClient};
-export {HollowClient};
+export type {HollowClientOptions, HollowClient};
+export {createHollowClient};
