@@ -12,7 +12,7 @@
   "scripts": {
     "prebuild": "yarn clean:lib && yarn lint",
     "build": "parcel build",
-    "test": "jest --coverage",
+    "test": "jest",
     "clean": "gts clean",
     "clean:lib": "rimraf ./lib",
     "lint": "gts lint",
@@ -24,7 +24,6 @@
     "yalc:publish": "yarn build && yalc publish --push"
   },
   "files": [
-    "circuits/",
     "lib/",
     "LICENSE",
     "README.md"
@@ -66,6 +65,7 @@
     "@types/jest": "^29.5.3",
     "@types/node": "^14.11.2",
     "gts": "^3.1.1",
+    "hollowdb-prover": "^0.1.4",
     "jest": "^29.6.1",
     "parcel": "^2.9.3",
     "rimraf": "^5.0.1",

@@ -1,5 +1,5 @@
 import {randomBytes} from 'crypto';
-import {createHollowClient, type HollowClient} from '../src';
+import {HollowClient} from '../src';
 import {mockFetchGetExpire, mockFetchGetRefresh} from './mocks';
 
 const KEY = 'my lovely key';
@@ -10,7 +10,7 @@ describe('token refresh due to new bearer', () => {
   beforeAll(async () => {
     global.fetch = mockFetchGetRefresh; // mock fetch
 
-    client = await createHollowClient({
+    client = await HollowClient.new({
       apiKey: randomBytes(32).toString('hex'),
       db: 'testing',
     });
@@ -34,7 +34,7 @@ describe('token refresh due to expiration', () => {
   beforeAll(async () => {
     global.fetch = mockFetchGetExpire; // mock fetch
 
-    client = await createHollowClient({
+    client = await HollowClient.new({
       apiKey: randomBytes(32).toString('hex'),
       db: 'testing',
     });

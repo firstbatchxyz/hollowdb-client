@@ -1,19 +1,29 @@
 import {randomBytes} from 'crypto';
-import {createHollowClient, type HollowClient} from '../src';
+import {computeKey, Prover} from 'hollowdb-prover';
+import {HollowClient} from '../src';
 import {mockFetchDB} from './mocks';
 
-const KEY = 'my lovely testing key';
 type ValueType = {
   test: number;
   foo: string;
 };
 
 // we can add plonk here too, but note that it has HUGE prover time
-([null, 'groth16'] as const).map(protocol =>
+([undefined, 'groth16', 'plonk'] as const).map(protocol =>
   describe(`client ${
     protocol ? `(protocol: ${protocol})` : '(not zk)'
   }`, () => {
     let client: HollowClient<ValueType>;
+
+    const prover = protocol
+      ? new Prover(
+          `./tests/circuits/hollow-authz-${protocol}/hollow-authz.wasm`,
+          `./tests/circuits/hollow-authz-${protocol}/prover_key.zkey`,
+          protocol
+        )
+      : undefined;
+    const PREIMAGE = BigInt('0x' + randomBytes(16).toString('hex'));
+    const KEY = protocol ? computeKey(PREIMAGE) : 'my lovely testing key';
     const values: ValueType[] = Array.from({length: 10}, () => ({
       test: Math.random() * 99,
       foo: randomBytes(4).toString('hex'),
@@ -22,15 +32,9 @@ type ValueType = {
     beforeAll(async () => {
       global.fetch = mockFetchDB;
 
-      client = await createHollowClient({
+      client = await HollowClient.new({
         apiKey: randomBytes(32).toString('hex'),
         db: 'testing',
-        zkOptions: protocol
-          ? {
-              protocol,
-              secret: randomBytes(16).toString('hex'),
-            }
-          : undefined,
       });
     });
 
@@ -42,15 +46,23 @@ type ValueType = {
 
     it('should update values', async () => {
       for (let i = 1; i < values.length; i++) {
+        const {proof} = protocol
+          ? await prover!.prove(PREIMAGE, values[i - 1], values[i])
+          : {proof: undefined};
+
         expect(await client.get(KEY)).toEqual(values[i - 1]);
-        await client.update(KEY, values[i]);
+        await client.update(KEY, values[i], proof);
         expect(await client.get(KEY)).toEqual(values[i]);
       }
     });
 
     it('should remove value', async () => {
+      const {proof} = protocol
+        ? await prover!.prove(PREIMAGE, values[values.length - 1], null)
+        : {proof: undefined};
+
       expect(await client.get(KEY)).toEqual(values[values.length - 1]);
-      await client.remove(KEY);
+      await client.remove(KEY, proof);
       expect(await client.get(KEY)).toEqual(null);
     });
 

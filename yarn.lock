@@ -2818,6 +2818,14 @@ has@^1.0.3:
   dependencies:
     function-bind "^1.1.1"
 
+hollowdb-prover@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/hollowdb-prover/-/hollowdb-prover-0.1.4.tgz#a4d95a339a4dbebe30421f79814f384ed58ca79b"
+  integrity sha512-reMPuOfVMpZpkFkVN3/OdHb6p7obETecrqZSrZnGQuuRa7Z0fZr8gQarhf3ehtRy65kmNRu6kNAbPuQn5cH47w==
+  dependencies:
+    poseidon-lite "^0.2.0"
+    snarkjs "^0.7.0"
+
 hoopy@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/hoopy/-/hoopy-0.1.4.tgz#609207d661100033a9a9402ad3dea677381c1b1d"

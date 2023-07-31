@@ -51,19 +51,9 @@ HollowDB client can be used both with zero-knowledge proofs and without zero-kno
 
 ```ts
 // without zero-knowledge
-client = await createHollowClient({
+client = await HollowClient.new({
   apiKey: 'your-api-key',
   db: 'your-database-name',
-});
-
-// with zero-knowledge
-client = await createHollowClient({
-  apiKey: 'your-api-key',
-  db: 'your-database-name',
-  zkOptions: {
-    protocol: 'groth16', // or 'plonk'
-    secret: "your-secret,
-  },
 });
 ```
 
@@ -72,10 +62,23 @@ The secret provided here will be used to derive keys and present zero-knowledge 
 After that, using the client is as simple as it gets:
 
 ```ts
+// without zero-knowledge proofs
 await client.get(KEY);
 await client.put(KEY, VALUE);
 await client.update(KEY, VALUE);
 await client.remove(KEY);
+```
+
+If you are connecting to a database that has zero-knowledge proof verifications enabled, you will need to provide proofs along with your requests.
+
+You can use our [HollowDB Prover](https://github.com/firstbatchxyz/hollowdb) utility to generate proofs with minimal development effort. Assuming that a proof is generated for the respective request, the proof shall be provided as an additional argument to these functions.
+
+```ts
+// with zero-knowledge proofs
+await client.get(KEY);
+await client.put(KEY, VALUE);
+await client.update(KEY, VALUE, PROOF);
+await client.remove(KEY, PROOF);
 ```
 
 ## Testing

@@ -1,8 +1,8 @@
 import {createHash} from 'crypto';
 const snarkjs = require('snarkjs');
 
-import groth16Vkey from '../../circuits/hollow-authz-groth16/verification_key.json';
-import plonkVkey from '../../circuits/hollow-authz-plonk/verification_key.json';
+import groth16Vkey from '../circuits/hollow-authz-groth16/verification_key.json';
+import plonkVkey from '../circuits/hollow-authz-plonk/verification_key.json';
 
 export async function verifyProof(
   proof: object & {protocol: string},
