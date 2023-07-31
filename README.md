@@ -47,17 +47,14 @@ pnpm add hollowdb-client    # pnpm
 
 ## Usage
 
-HollowDB client can be used both with zero-knowledge proofs and without zero-knowledge proofs.
+Create a new client with:
 
 ```ts
-// without zero-knowledge
 client = await HollowClient.new({
   apiKey: 'your-api-key',
   db: 'your-database-name',
 });
 ```
-
-The secret provided here will be used to derive keys and present zero-knowledge proofs to prove that you were the one to create the key. You can create the same keys by providing the same secret at a later time.
 
 After that, using the client is as simple as it gets:
 
