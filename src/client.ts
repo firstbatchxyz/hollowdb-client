@@ -25,7 +25,17 @@ const BASE_URL = 'http://localhost:3000';
  * **[HollowDB Client](https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service#hollowdb-client)**
  *
  * HollowDB client provides a very simple interface, abstracting everything behind
- * the scenes. You can do the 4 basic CRUD operations as shown below:
+ * the scenes. Create a new client with `new` static function:
+ *
+ * ```ts
+ * const client = await HollowClient.new({
+ *   apiKey: 'your-api-key',
+ *   db: 'your-database-name',
+ * });
+ * ```
+ *
+ *
+ * You can do the 4 basic CRUD operations as shown below:
  *
  * ```ts
  * await client.get(KEY);
