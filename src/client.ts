@@ -22,7 +22,7 @@ export type HollowClientOptions = {
 const BASE_URL = 'http://localhost:3000';
 
 /**
- * **HollowDB client.**
+ * **[HollowDB Client](https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service#hollowdb-client)**
  *
  * HollowDB client provides a very simple interface, abstracting everything behind
  * the scenes. You can do the 4 basic CRUD operations as shown below:
@@ -32,6 +32,13 @@ const BASE_URL = 'http://localhost:3000';
  * await client.put(KEY, VALUE);
  * await client.update(KEY, VALUE);
  * await client.remove(KEY);
+ * ```
+ *
+ * You can also do multi-operations:
+ *
+ * ```ts
+ * await client.getMulti([KEY1, KEY2, ...]);
+ * await client.putMulti([(KEY1, VALUE1), (KEY2, VALUE2), ...]);
  * ```
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,43 +84,8 @@ export class HollowClient<T = any> {
    * This operation does not require proofs.
    */
   public async get(key: string): Promise<T> {
-    return await this.read(key);
-  }
-
-  /**
-   * **Puts a value at the given key.**
-   *
-   * The target key must be empty, i.e. this is not an upsert operation.
-   *
-   * This operation does not require proofs even if zero-knowledge is enabled.
-   */
-  public async put(key: string, value: T) {
-    await this.write('put', JSON.stringify({key, value}));
-  }
-
-  /** **Updates a value at the given key.**
-   *
-   * A zero-knowledge proof is optionally provided, which the service
-   * expects if the connected database has proofs enabled.
-   */
-  public async update(key: string, value: T, proof?: object) {
-    await this.write('update', JSON.stringify({key, value, proof}));
-  }
-
-  /** **Removes a value at the given key.**
-   *
-   * Subsequent `get` calls to this key shall return `null`.
-   *
-   * A zero-knowledge proof is optionally provided, which the service
-   * expects if the connected database has proofs enabled.
-   */
-  public async remove(key: string, proof?: object) {
-    await this.write('remove', JSON.stringify({key, proof}));
-  }
-
-  protected async read(key: string) {
     const encodedKey = encodeURIComponent(key);
-    const response = await this.fetch<'read'>(
+    const response = await this.fetch<{result: T}>(
       `${BASE_URL}/get/${encodedKey}`,
       'GET'
     );
@@ -128,16 +100,96 @@ export class HollowClient<T = any> {
     return response.data.result;
   }
 
-  // TODO: use actual type, not body init
-  protected async write(op: 'put' | 'update' | 'remove', body: BodyInit) {
-    return this.fetch<'write'>(`${BASE_URL}/${op}`, 'POST', body);
+  /**
+   * **Returns the value at the given keys.**
+   *
+   * This operation does not require proofs.
+   *
+   * The returned array is an array of values where `value[i]` is
+   * belongs to `key[i]`. If a key does not exist, `null` is returned
+   * for that key.
+   */
+  public async getMulti(keys: string[]): Promise<T[]> {
+    const response = await this.fetch<{result: T[]}>(
+      `${BASE_URL}/mget`,
+      'POST',
+      JSON.stringify({keys})
+    );
+
+    return response.data.result;
   }
 
-  private async fetch<M extends 'read' | 'write'>(
+  /**
+   * **Puts a value at the given key.**
+   *
+   * The target key must be empty, i.e. this is not an upsert operation.
+   *
+   * This operation does not require proofs even if zero-knowledge is enabled.
+   */
+  public async put(key: string, value: T) {
+    await this.fetch(`${BASE_URL}/put`, 'POST', JSON.stringify({key, value}));
+  }
+
+  /**
+   * **Puts an array of key-value pairs.**
+   *
+   * The target keys must be empty, i.e. this is not an upsert operation.
+   *
+   * This operation does not require proofs even if zero-knowledge is enabled.
+   *
+   * Returns an array of booleans that indicate whether each key-value pair has
+   * been succesfully put or not.
+   *
+   * THIS FUNCTION IS `private` UNTIL BACKEND IS READY
+   */
+  private async putMulti(pairs: {key: string; value: T}[]): Promise<boolean[]> {
+    const response = await this.fetch<{result: boolean[]}>(
+      `${BASE_URL}/mput`,
+      'POST',
+      JSON.stringify({pairs})
+    );
+
+    return response.data.result;
+  }
+
+  /** **Updates a value at the given key.**
+   *
+   * A zero-knowledge proof is optionally provided, which the service
+   * expects if the connected database has proofs enabled.
+   */
+  public async update(key: string, value: T, proof?: object) {
+    await this.fetch(
+      `${BASE_URL}/update`,
+      'POST',
+      JSON.stringify({key, value, proof})
+    );
+  }
+
+  /** **Removes a value at the given key.**
+   *
+   * Subsequent `get` calls to this key shall return `null`.
+   *
+   * A zero-knowledge proof is optionally provided, which the service
+   * expects if the connected database has proofs enabled.
+   */
+  public async remove(key: string, proof?: object) {
+    await this.fetch(
+      `${BASE_URL}/remove`,
+      'POST',
+      JSON.stringify({key, proof})
+    );
+  }
+
+  /** Fetch utility for internal use. */
+  private async fetch<Data = undefined>(
     url: string,
     method: 'GET' | 'POST',
     body?: BodyInit
-  ) {
+  ): Promise<{
+    message: string;
+    data: Data;
+    newBearer?: string;
+  }> {
     const init: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -149,12 +201,8 @@ export class HollowClient<T = any> {
     if (body) init.body = body;
 
     const response = await fetch(url, init);
+    const json = await response.json();
 
-    const json = (await response.json()) as {
-      message: string;
-      data?: M extends 'read' ? {result: T} : undefined;
-      newBearer?: string;
-    };
     if (response.status === 200) {
       // new bearer has been created due to expiration of previous
       if (json.newBearer !== undefined) {
@@ -162,7 +210,7 @@ export class HollowClient<T = any> {
       }
       return json;
     } else if (json.message === 'token expired') {
-      // TODO: potential security issue? the server response json.message may be fabricated perhaps
+      // token has expired, client must initiate the new token request
       this.authToken = await getToken(this.db, this.apiKey);
       return json;
     }
