@@ -18,8 +18,8 @@ export type HollowClientOptions = {
   db: string;
 };
 
-// TODO: change to the real url / provide option?
-const BASE_URL = 'http://localhost:3000';
+/** Base API url. */
+const BASE_URL = 'https://api.hollowdb.xyz';
 
 /**
  * **[HollowDB Client](https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service#hollowdb-client)**

@@ -1,7 +1,7 @@
 import {randomBytes} from 'crypto';
 import {valueToBigInt, verifyProof} from '../utilities';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://api.hollowdb.xyz';
 const DB: Record<string, unknown> = {};
 
 /** A mocked fetch call, acting like the DB backend. */
