@@ -1,5 +1,4 @@
 import {getToken} from './utilities';
-import {HollowDBError} from './errors';
 
 /**
  * To authenticate yourself, you need to provide the following:
@@ -7,11 +6,7 @@ import {HollowDBError} from './errors';
  * - `apiKey` belonging to your team.
  * - `db` database name to connect to.
  *
- * Additionally, you can choose the zero-knowledge proof system to be used
- * along with a secret to generate proofs and derive keys.
- *
- * - `zkOptions.secret` will be your secret. This should not leave the client-side any time.
- * - `zkOptions.protocol` is Groth16 or PLONK. We provide prover keys & WASM files for both of them.
+ * To create a new API key or a database, go to <https://developer.hollowdb.xyz/>
  */
 export type HollowClientOptions = {
   apiKey: string;
@@ -44,11 +39,10 @@ const BASE_URL = 'https://api.hollowdb.xyz';
  * await client.remove(KEY);
  * ```
  *
- * You can also do multi-operations:
+ * You can also do a multi-get:
  *
  * ```ts
  * await client.getMulti([KEY1, KEY2, ...]);
- * await client.putMulti([(KEY1, VALUE1), (KEY2, VALUE2), ...]);
  * ```
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,19 +86,18 @@ export class HollowClient<T = any> {
    * **Returns the value at the given key.**
    *
    * This operation does not require proofs.
+   *
+   * If the key does not exist, `null` will be returned.
    */
-  public async get(key: string): Promise<T> {
+  public async get(key: string): Promise<T | null> {
     const encodedKey = encodeURIComponent(key);
-    const response = await this.fetch<{result: T}>(
+    const response = await this.fetch<{result: T | null}>(
       `${BASE_URL}/get/${encodedKey}`,
       'GET'
     );
 
     if (!response.data) {
-      // TODO: what should be the error message?
-      throw new HollowDBError({
-        message: 'No data at this key',
-      });
+      throw new Error('Expected data in response.');
     }
 
     return response.data.result;
@@ -119,8 +112,8 @@ export class HollowClient<T = any> {
    * belongs to `key[i]`. If a key does not exist, `null` is returned
    * for that key.
    */
-  public async getMulti(keys: string[]): Promise<T[]> {
-    const response = await this.fetch<{result: T[]}>(
+  public async getMulti(keys: string[]): Promise<(T | null)[]> {
+    const response = await this.fetch<{result: (T | null)[]}>(
       `${BASE_URL}/mget`,
       'POST',
       JSON.stringify({keys})
@@ -150,7 +143,7 @@ export class HollowClient<T = any> {
    * Returns an array of booleans that indicate whether each key-value pair has
    * been succesfully put or not.
    *
-   * THIS FUNCTION IS `private` UNTIL BACKEND IS READY
+   * @deprecated THIS FUNCTION IS `private` UNTIL BACKEND IS READY
    */
   private async putMulti(pairs: {key: string; value: T}[]): Promise<boolean[]> {
     const response = await this.fetch<{result: boolean[]}>(
@@ -225,8 +218,6 @@ export class HollowClient<T = any> {
       return json;
     }
 
-    throw new HollowDBError({
-      message: `${url}: Status: ${response.status} Error: ${json.message}`,
-    });
+    throw new Error(`${url} got status ${response.status}: ${json.message}`);
   }
 }

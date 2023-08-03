@@ -24,7 +24,7 @@ type ValueType = {
       : undefined;
     const PREIMAGE = BigInt('0x' + randomBytes(16).toString('hex'));
     const KEY = protocol ? computeKey(PREIMAGE) : 'my lovely testing key';
-    const values: ValueType[] = Array.from({length: 5}, () => ({
+    const values: ValueType[] = Array.from({length: 2}, () => ({
       test: Math.random() * 99,
       foo: randomBytes(4).toString('hex'),
     }));

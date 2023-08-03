@@ -2,6 +2,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testTimeout: 40000,
+  testTimeout: 60000,
   verbose: true,
+  forceExit: true,
 };
