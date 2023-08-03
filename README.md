@@ -15,18 +15,15 @@
     <a href="https://opensource.org/licenses/MIT" target="_blank">
         <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg">
     </a>
-    <!-- <a href="https://www.npmjs.com/package/hollowdb" target="_blank">
-        <img alt="NPM" src="https://img.shields.io/npm/v/hollowdb?logo=npm&color=CB3837">
-    </a> -->
-    <a href="https://docs.hollowdb.xyz" target="_blank">
+    <a href="https://www.npmjs.com/package/hollowdb-client" target="_blank">
+        <img alt="NPM" src="https://img.shields.io/npm/v/hollowdb-client?logo=npm&color=CB3837">
+    </a>
+    <a href="https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service" target="_blank">
         <img alt="License: MIT" src="https://img.shields.io/badge/docs-hollowdb-3884FF.svg?logo=gitbook">
     </a>
-    <!-- <a href="./.github/workflows/test.yml" target="_blank">
-        <img alt="Workflow: Tests" src="https://github.com/firstbatchxyz/hollowdb/actions/workflows/test.yml/badge.svg?branch=master">
+    <a href="./.github/workflows/test.yml" target="_blank">
+        <img alt="Workflow: Tests" src="https://github.com/firstbatchxyz/hollowdb-client/actions/workflows/test.yml/badge.svg?branch=master">
     </a>
-    <a href="./.github/workflows/build.yml" target="_blank">
-        <img alt="Workflow: Styles" src="https://github.com/firstbatchxyz/hollowdb/actions/workflows/build.yml/badge.svg?branch=master">
-    </a> -->
     <a href="https://github.com/firstbatchxyz/hollowdb" target="_blank">
         <img alt="GitHub: HollowDB" src="https://img.shields.io/badge/github-hollowdb-5C3EFE?logo=github">
     </a>
@@ -47,7 +44,7 @@ pnpm add hollowdb-client    # pnpm
 
 ## Usage
 
-Create a new client with:
+Create a new API key and a database at <https://developer.hollowdb.xyz>. Create a new client by providing your API key and the database name to connect:
 
 ```ts
 client = await HollowClient.new({
@@ -66,7 +63,7 @@ await client.update(KEY, VALUE);
 await client.remove(KEY);
 ```
 
-If you are connecting to a database that has zero-knowledge proof verifications enabled, you will need to provide proofs along with your requests.
+If you are connecting to a database that has zero-knowledge proof verifications enabled, you will need to provide proofs along with your update & remove requests.
 
 You can use our [HollowDB Prover](https://github.com/firstbatchxyz/hollowdb) utility to generate proofs with minimal development effort. Assuming that a proof is generated for the respective request, the proof shall be provided as an additional argument to these functions.
 
