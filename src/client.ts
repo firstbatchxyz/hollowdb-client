@@ -15,6 +15,20 @@ export type HollowClientOptions = {
   provider?: string;
 };
 
+interface BlockchainOption {
+  /**
+   * Specify whether to store the value on blockchain (Arweave).
+   *
+   * If `undefined`, it defaults to storing the value on blockchain.
+   */
+  blockchain?: 'arweave' | 'none';
+}
+
+interface ExpireOption {
+  /** Specify an expiration time (seconds) for your data. */
+  expire?: number;
+}
+
 /**
  * **[HollowDB Client](https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service#hollowdb-client)**
  *
@@ -137,11 +151,15 @@ export class HollowClient<T = any> {
    *
    * This operation does not require proofs even if zero-knowledge is enabled.
    */
-  public async put(key: string, value: T) {
+  public async put(
+    key: string,
+    value: T,
+    options?: BlockchainOption & ExpireOption
+  ) {
     await this.fetch(
       `${this.BASE_URL}/put`,
       'POST',
-      JSON.stringify({key, value})
+      JSON.stringify({key, value, options})
     );
   }
 
@@ -157,7 +175,9 @@ export class HollowClient<T = any> {
    *
    * @deprecated THIS FUNCTION IS `private` UNTIL BACKEND IS READY
    */
-  private async putMulti(pairs: {key: string; value: T}[]): Promise<boolean[]> {
+  private async putMulti(
+    pairs: {key: string; value: T; options?: BlockchainOption & ExpireOption}[]
+  ): Promise<boolean[]> {
     const response = await this.fetch<{result: boolean[]}>(
       `${this.BASE_URL}/mput`,
       'POST',
@@ -172,11 +192,21 @@ export class HollowClient<T = any> {
    * A zero-knowledge proof is optionally provided, which the service
    * expects if the connected database has proofs enabled.
    */
-  public async update(key: string, value: T, proof?: object) {
+  public async update(
+    key: string,
+    value: T,
+    proof?: object,
+    options?: BlockchainOption & ExpireOption
+  ) {
     await this.fetch(
       `${this.BASE_URL}/update`,
       'POST',
-      JSON.stringify({key, value, proof})
+      JSON.stringify({
+        key,
+        value,
+        proof,
+        options,
+      })
     );
   }
 
@@ -187,11 +217,15 @@ export class HollowClient<T = any> {
    * A zero-knowledge proof is optionally provided, which the service
    * expects if the connected database has proofs enabled.
    */
-  public async remove(key: string, proof?: object) {
+  public async remove(key: string, proof?: object, options?: BlockchainOption) {
     await this.fetch(
       `${this.BASE_URL}/remove`,
       'POST',
-      JSON.stringify({key, proof})
+      JSON.stringify({
+        key,
+        proof,
+        options,
+      })
     );
   }
 
@@ -219,7 +253,7 @@ export class HollowClient<T = any> {
     const json = await response.json();
 
     if (response.status === 200) {
-      // new bearer has been created due to expiration of previous
+      // new bearer has been created due to expiration of previous bearer
       if (json.newBearer !== undefined) {
         this.authToken = json.newBearer;
       }
