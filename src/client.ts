@@ -11,8 +11,8 @@ import {getToken} from './utilities';
 export type HollowClientOptions = {
   apiKey: string;
   db: string;
-  region: string;
-  provider: string;
+  region?: string;
+  provider?: string;
 };
 
 /**
@@ -58,6 +58,9 @@ export class HollowClient<T = any> {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;
     this.db = opt.db;
+
+    if (!opt.region) opt.region = 'eu-central-1';
+    if (!opt.provider) opt.provider = 'aws';
 
     this.BASE_URL = `https://${opt.provider}-${opt.region}.hollowdb.xyz/db/${this.apiVersion}`;
     /** Base API url. */
