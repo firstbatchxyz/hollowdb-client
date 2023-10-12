@@ -11,10 +11,9 @@ import {getToken} from './utilities';
 export type HollowClientOptions = {
   apiKey: string;
   db: string;
+  region: string;
+  provider: string;
 };
-
-/** Base API url. */
-const BASE_URL = 'https://api.hollowdb.xyz';
 
 /**
  * **[HollowDB Client](https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service#hollowdb-client)**
@@ -50,12 +49,18 @@ export class HollowClient<T = any> {
   protected readonly apiKey: string;
   protected readonly db: string;
   protected authToken: string;
+  protected readonly apiVersion = 'v0';
+
+  protected BASE_URL: string;
 
   // auth token is retrieved by the client code, so it is not provided within `opt`
   private constructor(opt: HollowClientOptions, authToken: string) {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;
     this.db = opt.db;
+
+    this.BASE_URL = `https://${opt.provider}-${opt.region}.hollowdb.xyz/db/${this.apiVersion}`;
+    /** Base API url. */
   }
 
   /**
@@ -92,7 +97,7 @@ export class HollowClient<T = any> {
   public async get(key: string): Promise<T | null> {
     const encodedKey = encodeURIComponent(key);
     const response = await this.fetch<{result: T | null}>(
-      `${BASE_URL}/get/${encodedKey}`,
+      `${this.BASE_URL}/get/${encodedKey}`,
       'GET'
     );
 
@@ -114,7 +119,7 @@ export class HollowClient<T = any> {
    */
   public async getMulti(keys: string[]): Promise<(T | null)[]> {
     const response = await this.fetch<{result: (T | null)[]}>(
-      `${BASE_URL}/mget`,
+      `${this.BASE_URL}/mget`,
       'POST',
       JSON.stringify({keys})
     );
@@ -130,7 +135,11 @@ export class HollowClient<T = any> {
    * This operation does not require proofs even if zero-knowledge is enabled.
    */
   public async put(key: string, value: T) {
-    await this.fetch(`${BASE_URL}/put`, 'POST', JSON.stringify({key, value}));
+    await this.fetch(
+      `${this.BASE_URL}/put`,
+      'POST',
+      JSON.stringify({key, value})
+    );
   }
 
   /**
@@ -147,7 +156,7 @@ export class HollowClient<T = any> {
    */
   private async putMulti(pairs: {key: string; value: T}[]): Promise<boolean[]> {
     const response = await this.fetch<{result: boolean[]}>(
-      `${BASE_URL}/mput`,
+      `${this.BASE_URL}/mput`,
       'POST',
       JSON.stringify({pairs})
     );
@@ -162,7 +171,7 @@ export class HollowClient<T = any> {
    */
   public async update(key: string, value: T, proof?: object) {
     await this.fetch(
-      `${BASE_URL}/update`,
+      `${this.BASE_URL}/update`,
       'POST',
       JSON.stringify({key, value, proof})
     );
@@ -177,7 +186,7 @@ export class HollowClient<T = any> {
    */
   public async remove(key: string, proof?: object) {
     await this.fetch(
-      `${BASE_URL}/remove`,
+      `${this.BASE_URL}/remove`,
       'POST',
       JSON.stringify({key, proof})
     );
