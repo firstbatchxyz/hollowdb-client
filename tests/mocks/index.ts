@@ -1,9 +1,9 @@
 import {randomBytes} from 'crypto';
 import {valueToBigInt, verifyProof} from '../utilities';
 
-const REGION = 'eu-central-1'
-const PROVIDER = 'aws'
-const API_VER = 'v0'
+const REGION = 'eu-central-1';
+const PROVIDER = 'aws';
+const API_VER = 'v0';
 const BASE_URL = `https://${PROVIDER}-${REGION}.hollowdb.xyz/db/${API_VER}`;
 
 const DB: Record<string, unknown> = {};
