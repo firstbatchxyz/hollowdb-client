@@ -11,10 +11,23 @@ import {getToken} from './utilities';
 export type HollowClientOptions = {
   apiKey: string;
   db: string;
+  region?: string;
+  provider?: string;
 };
 
-/** Base API url. */
-const BASE_URL = 'https://api.hollowdb.xyz';
+type BlockchainOption = {
+  /**
+   * Specify whether to store the value on blockchain (Arweave).
+   *
+   * If `undefined`, it defaults to storing the value on blockchain.
+   */
+  blockchain?: 'arweave' | 'none';
+};
+
+type ExpireOption = {
+  /** Specify an expiration time (seconds) for your data. */
+  expire?: number;
+};
 
 /**
  * **[HollowDB Client](https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service#hollowdb-client)**
@@ -50,12 +63,21 @@ export class HollowClient<T = any> {
   protected readonly apiKey: string;
   protected readonly db: string;
   protected authToken: string;
+  protected readonly apiVersion = 'v0';
+
+  protected BASE_URL: string;
 
   // auth token is retrieved by the client code, so it is not provided within `opt`
   private constructor(opt: HollowClientOptions, authToken: string) {
     this.apiKey = opt.apiKey;
     this.authToken = authToken;
     this.db = opt.db;
+
+    if (!opt.region) opt.region = 'eu-central-1';
+    if (!opt.provider) opt.provider = 'aws';
+
+    this.BASE_URL = `https://${opt.provider}-${opt.region}.hollowdb.xyz/db/${this.apiVersion}`;
+    /** Base API url. */
   }
 
   /**
@@ -75,7 +97,6 @@ export class HollowClient<T = any> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async new<T = any>(
-    // TODO: take them one by one instead of options?
     options: HollowClientOptions
   ): Promise<HollowClient<T>> {
     const authToken = await getToken(options.db, options.apiKey);
@@ -92,7 +113,7 @@ export class HollowClient<T = any> {
   public async get(key: string): Promise<T | null> {
     const encodedKey = encodeURIComponent(key);
     const response = await this.fetch<{result: T | null}>(
-      `${BASE_URL}/get/${encodedKey}`,
+      `${this.BASE_URL}/get/${encodedKey}`,
       'GET'
     );
 
@@ -114,7 +135,7 @@ export class HollowClient<T = any> {
    */
   public async getMulti(keys: string[]): Promise<(T | null)[]> {
     const response = await this.fetch<{result: (T | null)[]}>(
-      `${BASE_URL}/mget`,
+      `${this.BASE_URL}/mget`,
       'POST',
       JSON.stringify({keys})
     );
@@ -129,8 +150,26 @@ export class HollowClient<T = any> {
    *
    * This operation does not require proofs even if zero-knowledge is enabled.
    */
-  public async put(key: string, value: T) {
-    await this.fetch(`${BASE_URL}/put`, 'POST', JSON.stringify({key, value}));
+  public async put(
+    key: string,
+    value: T,
+    options?: ExpireOption
+  ): Promise<void>;
+  public async put(
+    key: string,
+    value: T,
+    options?: BlockchainOption
+  ): Promise<void>;
+  public async put(
+    key: string,
+    value: T,
+    options?: ExpireOption | BlockchainOption
+  ): Promise<void> {
+    await this.fetch(
+      `${this.BASE_URL}/put`,
+      'POST',
+      JSON.stringify({key, value, options})
+    );
   }
 
   /**
@@ -143,11 +182,18 @@ export class HollowClient<T = any> {
    * Returns an array of booleans that indicate whether each key-value pair has
    * been succesfully put or not.
    *
-   * @deprecated THIS FUNCTION IS `private` UNTIL BACKEND IS READY
    */
-  private async putMulti(pairs: {key: string; value: T}[]): Promise<boolean[]> {
+  public async putMulti(
+    pairs: {key: string; value: T; options?: ExpireOption}[]
+  ): Promise<boolean[]>;
+  public async putMulti(
+    pairs: {key: string; value: T; options?: BlockchainOption}[]
+  ): Promise<boolean[]>;
+  public async putMulti(
+    pairs: {key: string; value: T; options?: BlockchainOption | ExpireOption}[]
+  ): Promise<boolean[]> {
     const response = await this.fetch<{result: boolean[]}>(
-      `${BASE_URL}/mput`,
+      `${this.BASE_URL}/mput`,
       'POST',
       JSON.stringify({pairs})
     );
@@ -160,11 +206,33 @@ export class HollowClient<T = any> {
    * A zero-knowledge proof is optionally provided, which the service
    * expects if the connected database has proofs enabled.
    */
-  public async update(key: string, value: T, proof?: object) {
+  public async update(
+    key: string,
+    value: T,
+    proof?: object,
+    options?: BlockchainOption
+  ): Promise<void>;
+  public async update(
+    key: string,
+    value: T,
+    proof?: object,
+    options?: ExpireOption
+  ): Promise<void>;
+  public async update(
+    key: string,
+    value: T,
+    proof?: object,
+    options?: BlockchainOption | ExpireOption
+  ) {
     await this.fetch(
-      `${BASE_URL}/update`,
+      `${this.BASE_URL}/update`,
       'POST',
-      JSON.stringify({key, value, proof})
+      JSON.stringify({
+        key,
+        value,
+        proof,
+        options,
+      })
     );
   }
 
@@ -175,11 +243,15 @@ export class HollowClient<T = any> {
    * A zero-knowledge proof is optionally provided, which the service
    * expects if the connected database has proofs enabled.
    */
-  public async remove(key: string, proof?: object) {
+  public async remove(key: string, proof?: object, options?: BlockchainOption) {
     await this.fetch(
-      `${BASE_URL}/remove`,
+      `${this.BASE_URL}/remove`,
       'POST',
-      JSON.stringify({key, proof})
+      JSON.stringify({
+        key,
+        proof,
+        options,
+      })
     );
   }
 
@@ -207,7 +279,7 @@ export class HollowClient<T = any> {
     const json = await response.json();
 
     if (response.status === 200) {
-      // new bearer has been created due to expiration of previous
+      // new bearer has been created due to expiration of previous bearer
       if (json.newBearer !== undefined) {
         this.authToken = json.newBearer;
       }
