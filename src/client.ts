@@ -15,19 +15,19 @@ export type HollowClientOptions = {
   provider?: string;
 };
 
-interface BlockchainOption {
+type BlockchainOption = {
   /**
    * Specify whether to store the value on blockchain (Arweave).
    *
    * If `undefined`, it defaults to storing the value on blockchain.
    */
   blockchain?: 'arweave' | 'none';
-}
+};
 
-interface ExpireOption {
+type ExpireOption = {
   /** Specify an expiration time (seconds) for your data. */
   expire?: number;
-}
+};
 
 /**
  * **[HollowDB Client](https://docs.hollowdb.xyz/hollowdb/hollowdb-as-a-service#hollowdb-client)**
@@ -97,7 +97,6 @@ export class HollowClient<T = any> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async new<T = any>(
-    // TODO: take them one by one instead of options?
     options: HollowClientOptions
   ): Promise<HollowClient<T>> {
     const authToken = await getToken(options.db, options.apiKey);
@@ -154,8 +153,18 @@ export class HollowClient<T = any> {
   public async put(
     key: string,
     value: T,
-    options?: BlockchainOption & ExpireOption
-  ) {
+    options?: ExpireOption
+  ): Promise<void>;
+  public async put(
+    key: string,
+    value: T,
+    options?: BlockchainOption
+  ): Promise<void>;
+  public async put(
+    key: string,
+    value: T,
+    options?: ExpireOption | BlockchainOption
+  ): Promise<void> {
     await this.fetch(
       `${this.BASE_URL}/put`,
       'POST',
@@ -173,10 +182,15 @@ export class HollowClient<T = any> {
    * Returns an array of booleans that indicate whether each key-value pair has
    * been succesfully put or not.
    *
-   * @deprecated THIS FUNCTION IS `private` UNTIL BACKEND IS READY
    */
-  private async putMulti(
-    pairs: {key: string; value: T; options?: BlockchainOption & ExpireOption}[]
+  public async putMulti(
+    pairs: {key: string; value: T; options?: ExpireOption}[]
+  ): Promise<boolean[]>;
+  public async putMulti(
+    pairs: {key: string; value: T; options?: BlockchainOption}[]
+  ): Promise<boolean[]>;
+  public async putMulti(
+    pairs: {key: string; value: T; options?: BlockchainOption | ExpireOption}[]
   ): Promise<boolean[]> {
     const response = await this.fetch<{result: boolean[]}>(
       `${this.BASE_URL}/mput`,
@@ -196,7 +210,19 @@ export class HollowClient<T = any> {
     key: string,
     value: T,
     proof?: object,
-    options?: BlockchainOption & ExpireOption
+    options?: BlockchainOption
+  ): Promise<void>;
+  public async update(
+    key: string,
+    value: T,
+    proof?: object,
+    options?: ExpireOption
+  ): Promise<void>;
+  public async update(
+    key: string,
+    value: T,
+    proof?: object,
+    options?: BlockchainOption | ExpireOption
   ) {
     await this.fetch(
       `${this.BASE_URL}/update`,
