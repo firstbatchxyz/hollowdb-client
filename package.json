@@ -1,7 +1,7 @@
 {
   "name": "hollowdb-client",
   "description": "HollowDB client",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "FirstBatch Team <dev@firstbatch.xyz>",
   "contributors": [
     "Faruk Can Özkan <farukcan@firstbatch.xyz>",
@@ -42,19 +42,13 @@
   "targets": {
     "cjs": {
       "outputFormat": "commonjs",
-      "isLibrary": false,
-      "context": "node",
-      "scopeHoist": false,
-      "includeNodeModules": false,
-      "optimize": false
+      "isLibrary": true,
+      "context": "node"
     },
     "mjs": {
       "outputFormat": "esmodule",
-      "isLibrary": false,
-      "context": "node",
-      "scopeHoist": false,
-      "includeNodeModules": false,
-      "optimize": false
+      "isLibrary": true,
+      "context": "node"
     }
   },
   "engines": {
